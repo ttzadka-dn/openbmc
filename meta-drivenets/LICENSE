@@ -1,0 +1,14 @@
+Different components of OpenBMC are under different licenses.  The whole project
+can be redistributed and/or modified under the terms of:
+
+Apache License v2.0 - COPYING.apache-2.0
+MIT License - COPYING.MIT
+
+Unless specifically indicated otherwise in a given file, the default license
+is Apache-2.0.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under these licenses is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the specific licenses for the specific language governing permissions
+and limitations under those licenses.
