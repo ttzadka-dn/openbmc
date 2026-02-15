@@ -1,0 +1,280 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (c) 2024 DriveNets
+
+// DriveNets Q2C BMC Device Tree
+// Extends the EVB base device tree with Q2C-specific configurations
+
+// Include the base EVB device tree and extend it
+#include "aspeed-ast2600-evb.dts"
+
+/ {
+	model = "DriveNets Q2C BMC";
+	compatible = "drivenets,q2c-bmc", "aspeed,ast2600";
+
+	// Q2C-specific LEDs
+	leds {
+		compatible = "gpio-leds";
+
+		led-identify {
+			label = "identify";
+			gpios = <&gpio0 ASPEED_GPIO(A, 0) GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led-status-green {
+			label = "status-green";
+			gpios = <&gpio0 ASPEED_GPIO(A, 1) GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		led-status-amber {
+			label = "status-amber";
+			gpios = <&gpio0 ASPEED_GPIO(A, 2) GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		led-fault {
+			label = "fault";
+			gpios = <&gpio0 ASPEED_GPIO(A, 3) GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		// Add more Q2C-specific LEDs here
+	};
+};
+
+// All EVB peripherals (UARTs, MACs, Flash, etc.) are inherited automatically!
+// Only override or extend what's different for Q2C hardware below.
+
+// Q2C I2C Devices - Add sensors, EEPROMs, power supplies, etc.
+
+// Example: Temperature sensors
+&i2c0 {
+	// Inlet temperature sensor
+	inlet_temp: tmp75@48 {
+		compatible = "ti,tmp75";
+		reg = <0x48>;
+		label = "inlet_temp";
+	};
+
+	// Outlet temperature sensor
+	outlet_temp: tmp75@49 {
+		compatible = "ti,tmp75";
+		reg = <0x49>;
+		label = "outlet_temp";
+	};
+};
+
+// Example: Board FRU EEPROM
+&i2c1 {
+	board_fru: eeprom@50 {
+		compatible = "atmel,24c256";
+		reg = <0x50>;
+		label = "board_fru";
+		pagesize = <64>;
+	};
+};
+
+// Example: CPU/SoC monitoring
+&i2c2 {
+	// Add CPU temperature or power monitoring devices
+};
+
+// Example: DIMM/Memory monitoring
+&i2c3 {
+	// Add memory temperature sensors (e.g., JC42)
+};
+
+// Example: Voltage regulators
+&i2c4 {
+	// Add VR monitoring devices
+};
+
+// Example: Add more I2C devices as needed
+&i2c5 {
+	// Additional sensors
+};
+
+// Example: Power supplies
+&i2c6 {
+	psu0: power-supply@58 {
+		compatible = "pmbus";
+		reg = <0x58>;
+		label = "psu0";
+	};
+
+	psu1: power-supply@59 {
+		compatible = "pmbus";
+		reg = <0x59>;
+		label = "psu1";
+	};
+};
+
+// Example: Expansion or custom devices
+&i2c7 {
+	// Additional I2C devices
+};
+
+// Q2C GPIO Configuration
+// Name the GPIOs that Q2C actually uses
+&gpio0 {
+	gpio-line-names =
+	// A0-A7
+	"led-identify", "led-status-green", "led-status-amber", "led-fault",
+	"power-button", "reset-button", "", "",
+	// B0-B7
+	"", "", "", "", "", "", "", "",
+	// C0-C7
+	"", "", "", "", "", "", "", "",
+	// D0-D7
+	"", "", "", "", "", "", "", "",
+	// E0-E7
+	"", "", "", "", "", "", "", "",
+	// F0-F7
+	"", "", "", "", "", "", "", "",
+	// G0-G7
+	"", "", "", "", "", "", "", "",
+	// H0-H7
+	"", "", "", "", "", "", "", "";
+	// Continue naming only the GPIOs Q2C uses
+};
+
+// Q2C Network Configuration
+// Override if Q2C uses NC-SI or different network configuration
+/* Example: Use NC-SI instead of direct PHY
+&mac0 {
+	use-ncsi;
+};
+*/
+
+/* Example: Disable MAC1 if not used on Q2C
+&mac1 {
+	status = "disabled";
+};
+*/
+
+// Q2C Flash Configuration
+// Override if Q2C uses different flash size or configuration
+/* Example: Increase flash speed
+&fmc {
+	flash@0 {
+		spi-max-frequency = <100000000>;
+	};
+};
+*/
+
+/* Example: Add host flash on SPI1
+&spi1 {
+	flash@0 {
+		status = "okay";
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		label = "host-firmware";
+		m25p,fast-read;
+		spi-max-frequency = <100000000>;
+	};
+};
+*/
+
+// Q2C Fan Configuration
+&pwm_tacho {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm0_default &pinctrl_pwm1_default
+		     &pinctrl_pwm2_default &pinctrl_pwm3_default>;
+
+	// Fan 0
+	fan@0 {
+		reg = <0x00>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x00>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <125 151 177 203 229 255>;
+		aspeed,pulse-pr = <2>;
+		label = "fan0";
+	};
+
+	// Fan 1
+	fan@1 {
+		reg = <0x01>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x01>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <125 151 177 203 229 255>;
+		aspeed,pulse-pr = <2>;
+		label = "fan1";
+	};
+
+	// Fan 2
+	fan@2 {
+		reg = <0x02>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x02>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <125 151 177 203 229 255>;
+		aspeed,pulse-pr = <2>;
+		label = "fan2";
+	};
+
+	// Fan 3
+	fan@3 {
+		reg = <0x03>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x03>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <125 151 177 203 229 255>;
+		aspeed,pulse-pr = <2>;
+		label = "fan3";
+	};
+
+	// Add more fans as needed (up to 8 PWM channels on AST2600)
+};
+
+// Q2C Serial/UART Configuration
+// Override if Q2C uses additional UARTs for host console, etc.
+/* Example: Enable additional UART for host console
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+*/
+
+// Q2C IPMI KCS Interfaces
+// Override if Q2C uses different KCS addresses
+/* Example: Change KCS addresses
+&kcs1 {
+	aspeed,lpc-io-reg = <0xca0>;
+};
+
+&kcs2 {
+	aspeed,lpc-io-reg = <0xca8>;
+};
+
+&kcs3 {
+	aspeed,lpc-io-reg = <0xca2>;
+};
+*/
+
+// Q2C LPC Configuration
+/* Example: Change snoop port
+&lpc_snoop {
+	snoop-ports = <0x80>;
+};
+*/
+
+// TODO: Customize this device tree based on actual Q2C hardware:
+// 1. Update LED GPIOs to match Q2C board
+// 2. Add all I2C sensors and devices present on Q2C
+// 3. Configure correct GPIO names and functions
+// 4. Set up fans with correct PWM/Tach channels
+// 5. Configure network (NC-SI vs direct PHY)
+// 6. Add any Q2C-specific peripherals
+// 7. Update serial console if different from ttyS4
+// 8. Configure host interface (IPMI KCS addresses, etc.)

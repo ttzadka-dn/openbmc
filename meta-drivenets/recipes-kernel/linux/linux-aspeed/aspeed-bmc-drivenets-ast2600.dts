@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (c) 2024 DriveNets
+
+// Include the base EVB device tree and extend it
+#include "aspeed-ast2600-evb.dts"
+
+/ {
+	model = "DriveNets AST2600 BMC";
+	compatible = "drivenets,ast2600-bmc", "aspeed,ast2600";
+
+	// Add DriveNets-specific LEDs
+	leds {
+		compatible = "gpio-leds";
+
+		/* Example LEDs - customize for your hardware
+		led-identify {
+			label = "identify";
+			gpios = <&gpio0 ASPEED_GPIO(A, 0) GPIO_ACTIVE_LOW>;
+		};
+
+		led-status-green {
+			label = "status-green";
+			gpios = <&gpio0 ASPEED_GPIO(A, 1) GPIO_ACTIVE_HIGH>;
+		};
+
+		led-status-amber {
+			label = "status-amber";
+			gpios = <&gpio0 ASPEED_GPIO(A, 2) GPIO_ACTIVE_HIGH>;
+		};
+		*/
+	};
+};
+
+// All EVB peripherals (UARTs, MACs, Flash, etc.) are inherited automatically!
+// Only add/modify what's different for your hardware below.
+
+// Override or extend EVB peripherals as needed
+
+/* Example: Change flash configuration if different from EVB
+&fmc {
+	flash@0 {
+		spi-max-frequency = <100000000>;  // Increase speed from EVB default
+	};
+};
+*/
+
+/* Example: Add custom SPI device
+&spi1 {
+	flash@1 {
+		status = "okay";
+		compatible = "jedec,spi-nor";
+		reg = <1>;
+		label = "host-firmware";
+		spi-max-frequency = <100000000>;
+	};
+};
+*/
+
+/* Example: Use NC-SI on MAC0 instead of EVB's direct PHY
+&mac0 {
+	use-ncsi;
+};
+*/
+
+// Add your custom I2C devices here
+
+/* Example: Add temperature sensor on I2C0
+&i2c0 {
+	inlet_temp: tmp75@48 {
+		compatible = "ti,tmp75";
+		reg = <0x48>;
+		label = "inlet_temp";
+	};
+};
+*/
+
+/* Example: Add FRU EEPROM on I2C4
+&i2c4 {
+	board_fru: eeprom@50 {
+		compatible = "atmel,24c256";
+		reg = <0x50>;
+		label = "board_fru";
+	};
+};
+*/
+
+/* Example: Add power supply on I2C6
+&i2c6 {
+	psu0: power-supply@58 {
+		compatible = "pmbus";
+		reg = <0x58>;
+		label = "psu0";
+	};
+};
+*/
+
+// Add descriptive GPIO names for your specific hardware
+
+/* Example: Name the GPIOs you actually use
+&gpio0 {
+	gpio-line-names =
+	// A0-A7
+	"power-button", "reset-button", "id-led", "status-led",
+	"", "", "", "",
+	// B0-B7
+	"", "", "", "", "", "", "", "",
+	// Continue as needed...
+	;
+};
+*/
+
+/* Example: Add custom fan configuration
+&pwm_tacho {
+	fan@0 {
+		reg = <0x00>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x00>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <125 151 177 203 229 255>;
+		aspeed,pulse-pr = <2>;
+	};
+
+	fan@1 {
+		reg = <0x01>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x01>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <125 151 177 203 229 255>;
+		aspeed,pulse-pr = <2>;
+	};
+};
+*/

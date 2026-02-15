@@ -8,7 +8,8 @@ This layer provides OpenBMC support for DriveNets hardware platforms. The layer 
 
 ## Currently Supported Hardware
 
-- **drivenets-ast2600**: DriveNets platforms based on ASPEED AST2600 SOC
+- **drivenets-ast2600**: DriveNets platforms based on ASPEED AST2600 EVB
+- **drivenets-q2c**: DriveNets Q2C platform (skeleton/template - customize for your hardware)
 
 ## Getting Started
 
@@ -58,23 +59,26 @@ meta-drivenets/
 
 ## Adding New Hardware
 
-To add support for new hardware platforms:
+The flat architecture makes it easy to add new hardware platforms. Simply:
 
-1. Create a new machine configuration in `conf/machine/<machine-name>.conf`
-2. Update the machine configuration with appropriate:
-   - Kernel device tree
-   - U-Boot configuration
-   - Serial console settings
-   - Flash size
-   - SOC-specific includes
+1. Create a new machine configuration in `conf/machine/drivenets-<new-hw>.conf`
+2. Create a device tree in `recipes-kernel/linux/linux-aspeed/aspeed-bmc-drivenets-<new-hw>.dts`
+3. Add the DTS to `recipes-kernel/linux/linux-aspeed_%.bbappend`
 
-Example:
+**See detailed guide:** [docs/MULTIPLE_MACHINES.md](docs/MULTIPLE_MACHINES.md)
+
+**Quick example:**
 ```bitbake
 # conf/machine/drivenets-<new-hw>.conf
-KERNEL_DEVICETREE = "..."
-UBOOT_MACHINE = "..."
-require conf/machine/include/<soc>.inc
+KERNEL_DEVICETREE = "aspeed/aspeed-bmc-drivenets-<new-hw>.dtb"
+UBOOT_MACHINE = "ast2600_openbmc_spl_defconfig"
+require conf/machine/include/ast2600.inc
+SERIAL_CONSOLES = "115200;ttyS4"
+FLASH_SIZE = "65536"
+IMAGE_FEATURES:remove = "obmc-system-mgmt"
 ```
+
+All machines live in `conf/machine/` with a flat structure - no nested layers!
 
 ## Dependencies
 
