@@ -1,127 +1,267 @@
 // SPDX-License-Identifier: GPL-2.0+
 // Copyright (c) 2024 DriveNets
-
+//
 // DriveNets Q2C BMC Device Tree
-// Extends the EVB base device tree with Q2C-specific configurations
+// BMC SoC: ASPEED AST2620 (AST2600-family variant)
+//
+// ============================================================================
+// ARCHITECTURE (confirmed from block diagram DriveNets_Q2C_09172025.pdf)
+// ============================================================================
+//
+//  The AST2620 BMC is on the DC-SCM (Data Center Secure Control Module),
+//  an OCP DC-SCM v2 form-factor module manufactured by Alpha Networks
+//  (part number 8AESQ2CMB0A1G).  The DC-SCM plugs into the Q2C carrier board
+//  via a Gold Finger connector.
+//
+//  Devices physically ON the DC-SCM board (direct AST2620 I2C):
+//    i2c_scm bus  →  SCM FRU EEPROM, Inlet Temp sensor, Outlet Temp sensor,
+//                    Mailbox register interface (to SCM PLD / Board Controller)
+//
+//  Carrier-board devices reachable via DC-SCM Gold Finger:
+//    Fan Extension Board  — i2c via SDA_FAN_EXP/SCL_FAN_EXP; 4 fans Fan0–Fan3
+//                           PWM+tach+present+direction+per-fan LEDs
+//    PSU0, PSU1           — PMBus via PCA9548#15 I2C mux @ 0x71 (sch pg 3)
+//    LM75#0/1/2           — carrier board temperature sensors (sch pg 34)
+//    TMP435               — CPU remote junction temp (MAC_TEMP_ALERT_L, sch pg 34)
+//    PCA9548#16 I2C mux   — on fan extension board bus (sch pg 59)
+//
+//  Host CPU: AMD x86 (COMe module)
+//
+//  Management networking:
+//    OOB NIC — Intel I210 attached to DC-SCM via PCIe Gen2 x1 → MDI (block diag pg 5,10)
+//    NCSI    — AMD x86 COMe NIC → DC-SCM mac1 (in-band management path)
+//
+//  UART / Console:
+//    UART0_BMC + UART1_BMC → physical MUX (UART_SEL push-button, <5s)
+//    MUX output → Console Board → UART_RJ45 (RS-232 transceiver)
+//    UART0_MAC (BCM88820), UART0_CPU/UART1_CPU (AMD x86 COMe) also on the MUX
+//    Console is ttyS0 (UART0_BMC) — verify UART_SEL default from DC-SCM schematic.
+//
+//  SGPIO → SCM PLD → panel LEDs:
+//    SYNC, SYS, FAN, PS0, PS1 monitored by SCM PLD / Board Controller (block diag pg 9)
+//
+//  SPI Flash:  BMC Flash + BIOS Flash via PFR/ROT chip (PCIe from DC-SCM → PFR/ROT)
+//
+//  NOTE on I2C bus numbers:
+//    Bus numbers (i2c0, i2c1, etc.) are PLACEHOLDERS.
+//    Verify exact AST2620 I2C bus assignments from the DC-SCM SPI/I2C block diagram
+//    slides (pages 12–13 of DriveNets_Q2C_09172025.pdf) or by running:
+//      i2cdetect -l     on a running BMC
+// ============================================================================
 
-// Include the base EVB device tree and extend it
 #include "aspeed-ast2600-evb.dts"
 
 / {
-	model = "DriveNets Q2C BMC";
-	compatible = "drivenets,q2c-bmc", "aspeed,ast2600";
-
-	// Q2C-specific LEDs
-	leds {
-		compatible = "gpio-leds";
-
-		led-identify {
-			label = "identify";
-			gpios = <&gpio0 ASPEED_GPIO(A, 0) GPIO_ACTIVE_LOW>;
-			default-state = "off";
-		};
-
-		led-status-green {
-			label = "status-green";
-			gpios = <&gpio0 ASPEED_GPIO(A, 1) GPIO_ACTIVE_HIGH>;
-			default-state = "off";
-		};
-
-		led-status-amber {
-			label = "status-amber";
-			gpios = <&gpio0 ASPEED_GPIO(A, 2) GPIO_ACTIVE_HIGH>;
-			default-state = "off";
-		};
-
-		led-fault {
-			label = "fault";
-			gpios = <&gpio0 ASPEED_GPIO(A, 3) GPIO_ACTIVE_HIGH>;
-			default-state = "off";
-		};
-
-		// Add more Q2C-specific LEDs here
-	};
+	model = "DriveNets Q2C DC-SCM BMC";
+	// AST2620 is a variant of AST2600; include both for kernel matching.
+	compatible = "drivenets,q2c-bmc", "aspeed,ast2620", "aspeed,ast2600";
 };
 
-// All EVB peripherals (UARTs, MACs, Flash, etc.) are inherited automatically!
-// Only override or extend what's different for Q2C hardware below.
-
-// Q2C I2C Devices - Add sensors, EEPROMs, power supplies, etc.
-
-// Example: Temperature sensors
+// ---------------------------------------------------------------------------
+// i2c0 — DC-SCM local bus
+//
+// Devices confirmed from Q2C block diagram ('DC-SCM I2C Block Diagram' pg 13):
+//   • SCM FRU EEPROM  — stores DC-SCM inventory / VPD asset data
+//   • Inlet Temp      — LM75 at air inlet of the DC-SCM / chassis
+//   • Outlet Temp     — LM75 at exhaust air outlet
+//   • Mailbox         — I2C register interface to SCM PLD / Board Controller
+//                       (the PLD monitors SYNC, SYS, FAN, PS0, PS1 signals)
+//
+// All addresses are PLACEHOLDERS — verify from DC-SCM board schematic.
+// ---------------------------------------------------------------------------
 &i2c0 {
-	// Inlet temperature sensor
-	inlet_temp: tmp75@48 {
-		compatible = "ti,tmp75";
-		reg = <0x48>;
-		label = "inlet_temp";
-	};
+	status = "okay";
 
-	// Outlet temperature sensor
-	outlet_temp: tmp75@49 {
-		compatible = "ti,tmp75";
-		reg = <0x49>;
-		label = "outlet_temp";
-	};
-};
-
-// Example: Board FRU EEPROM
-&i2c1 {
-	board_fru: eeprom@50 {
-		compatible = "atmel,24c256";
+	// SCM FRU EEPROM — stores DC-SCM VPD / asset data
+	// AT24C128 (128 Kbit) or ST M24128; pagesize = 64 bytes
+	scm_fru: eeprom@50 {
+		compatible = "atmel,24c128";
 		reg = <0x50>;
-		label = "board_fru";
+		label = "scm_fru";
 		pagesize = <64>;
 	};
+
+	// Inlet temperature (air entering the chassis)
+	// LM75 A2=A1=A0=0 → address 0x48 (typical default)
+	inlet_temp: temperature-sensor@48 {
+		compatible = "lm75";
+		reg = <0x48>;
+		label = "inlet_temp";
+		#thermal-sensor-cells = <0>;
+	};
+
+	// Outlet temperature (exhaust air leaving the chassis)
+	// A2=A1=A0=1 → address 0x49 (typical for second sensor on same bus)
+	outlet_temp: temperature-sensor@49 {
+		compatible = "lm75";
+		reg = <0x49>;
+		label = "outlet_temp";
+		#thermal-sensor-cells = <0>;
+	};
+
+	// Mailbox — I2C register interface to SCM PLD / Board Controller
+	// The PLD aggregates monitoring of: SYNC, SYS, FAN, PS0, PS1 signals.
+	// Uncomment when chip model is confirmed from DC-SCM schematic:
+	// scm_pld_mbox: i2c-device@40 {
+	//     compatible = "nxp,pca9554";   // or "microchip,mcp23008", etc.
+	//     reg = <0x40>;
+	// };
 };
 
-// Example: CPU/SoC monitoring
+// ---------------------------------------------------------------------------
+// i2c1 — PSU management bus (carrier board, via DC-SCM Gold Finger)
+//
+// PCA9548#15 I2C mux @ 0x71 on carrier board (schematic 8AESQ2CMB0A1G pg 3)
+// PSU0 on one mux channel, PSU1 on another (PMBus).
+// Channel numbers and PSU PMBus addresses: PLACEHOLDERS.
+// ---------------------------------------------------------------------------
+&i2c1 {
+	status = "okay";
+
+	psu_mux: i2c-mux@71 {
+		compatible = "nxp,pca9548";
+		reg = <0x71>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		i2c-mux-idle-disconnect;
+
+		// PSU0 PMBus — verify channel (5) and address (0x58) from carrier schematic
+		i2c@5 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <5>;
+			psu0: power-supply@58 {
+				compatible = "pmbus";
+				reg = <0x58>;
+				label = "psu0";
+			};
+		};
+
+		// PSU1 PMBus — verify channel (6) and address (0x58) from carrier schematic
+		i2c@6 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <6>;
+			psu1: power-supply@58 {
+				compatible = "pmbus";
+				reg = <0x58>;
+				label = "psu1";
+			};
+		};
+	};
+};
+
+// ---------------------------------------------------------------------------
+// i2c2 — Carrier board temperature sensors (via DC-SCM Gold Finger)
+//
+// Three LM75-compatible sensors (schematic 8AESQ2CMB0A1G pg 34):
+//   LM75#0  (alert: LM75#0_TEMP_ALERT_L) — ambient / inlet
+//   LM75#1  (alert: LM75#1_TEMP_ALERT_L) — mid-board
+//   LM75#2  (alert: LM75#2_TEMP_ALERT_L) — outlet / near exhaust fans
+//
+// TMP435 — dual-channel (local + CPU remote junction temperature)
+//   Alert: MAC_TEMP_ALERT_L (sch pg 34)
+//
+// Addresses set by A0/A1/A2 resistor straps — PLACEHOLDERS below.
+// ---------------------------------------------------------------------------
 &i2c2 {
-	// Add CPU temperature or power monitoring devices
+	status = "okay";
+
+	lm75_0: temperature-sensor@48 {
+		compatible = "lm75";
+		reg = <0x48>;
+		label = "board_temp_0";
+		#thermal-sensor-cells = <0>;
+	};
+
+	lm75_1: temperature-sensor@49 {
+		compatible = "lm75";
+		reg = <0x49>;
+		label = "board_temp_1";
+		#thermal-sensor-cells = <0>;
+	};
+
+	lm75_2: temperature-sensor@4a {
+		compatible = "lm75";
+		reg = <0x4a>;
+		label = "board_temp_2";
+		#thermal-sensor-cells = <0>;
+	};
+
+	// TMP435: channel 0 = local, channel 1 = CPU remote junction
+	tmp435: temperature-sensor@4c {
+		compatible = "ti,tmp435";
+		reg = <0x4c>;
+		label = "cpu_temp";
+		#thermal-sensor-cells = <1>;
+	};
 };
 
-// Example: DIMM/Memory monitoring
+// ---------------------------------------------------------------------------
+// i2c3 — Fan Extension Board (carrier board, via DC-SCM Gold Finger)
+//
+// The Fan Extension Board (schematic pg 59) aggregates 4 fan connectors.
+// Controlled via SDA_FAN_EXP / SCL_FAN_EXP from the DC-SCM Gold Finger.
+// Provides: FAN_PWM_0..3, FAN_TACH_0..3, FAN_PRESENT_0..3,
+//           FAN_DIRECTION_0..3, FAN0–3_LED_G, FAN0–3_LED_Y
+// Also on this bus: PCA9548#16 I2C mux (reset: 9548#16_RST_L).
+//
+// Fan expander chip model: TBD from DC-SCM schematic.
+// ---------------------------------------------------------------------------
 &i2c3 {
-	// Add memory temperature sensors (e.g., JC42)
+	status = "okay";
+
+	// Fan expander — TBD; example MAX31790 (6-ch fan controller, addr 0x20):
+	// fan_ctrl: max31790@20 {
+	//     compatible = "maxim,max31790";
+	//     reg = <0x20>;
+	// };
+
+	// PCA9548#16 mux on fan extension board bus:
+	// fan_mux: i2c-mux@70 {
+	//     compatible = "nxp,pca9548";
+	//     reg = <0x70>;
+	//     #address-cells = <1>;
+	//     #size-cells = <0>;
+	//     i2c-mux-idle-disconnect;
+	// };
 };
 
-// Example: Voltage regulators
-&i2c4 {
-	// Add VR monitoring devices
+// ---------------------------------------------------------------------------
+// SGPIO — drives Q2C carrier board panel LEDs via SCM PLD
+//
+// Confirmed from block diagram (pg 9): SGPIO from BMC → SCM PLD → panel LEDs.
+// SCM PLD monitors the following signals which map to panel LEDs:
+//   SYNC, SYS, FAN, PS0 (PSU0), PS1 (PSU1)
+// Per-fan LEDs: FAN0–3_LED_G / FAN0–3_LED_Y (from schematic pg 103)
+//
+// Bit assignments are PLACEHOLDERS — verify from SCM PLD firmware / DC-SCM schematic.
+// ---------------------------------------------------------------------------
+&sgpio {
+	status = "okay";
+	ngpios = <32>;
+	gpio-line-names =
+		"led-system-green",  "led-system-amber",
+		"led-psu0-green",    "led-psu0-amber",
+		"led-psu1-green",    "led-psu1-amber",
+		"led-fan-green",     "led-fan-amber",
+		"led-sync-green",    "led-sync-amber",
+		"led-fan0-green",    "led-fan0-amber",
+		"led-fan1-green",    "led-fan1-amber",
+		"led-fan2-green",    "led-fan2-amber",
+		"led-fan3-green",    "led-fan3-amber",
+		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "";
 };
 
-// Example: Add more I2C devices as needed
-&i2c5 {
-	// Additional sensors
-};
-
-// Example: Power supplies
-&i2c6 {
-	psu0: power-supply@58 {
-		compatible = "pmbus";
-		reg = <0x58>;
-		label = "psu0";
-	};
-
-	psu1: power-supply@59 {
-		compatible = "pmbus";
-		reg = <0x59>;
-		label = "psu1";
-	};
-};
-
-// Example: Expansion or custom devices
-&i2c7 {
-	// Additional I2C devices
-};
-
-// Q2C GPIO Configuration
-// Name the GPIOs that Q2C actually uses
+// ---------------------------------------------------------------------------
+// GPIO — named lines used by the DC-SCM / carrier board
+// Populate when DC-SCM schematic is available.
+// ---------------------------------------------------------------------------
 &gpio0 {
 	gpio-line-names =
 	// A0-A7
-	"led-identify", "led-status-green", "led-status-amber", "led-fault",
-	"power-button", "reset-button", "", "",
+	"", "", "", "", "", "", "", "",
 	// B0-B7
 	"", "", "", "", "", "", "", "",
 	// C0-C7
@@ -129,152 +269,73 @@
 	// D0-D7
 	"", "", "", "", "", "", "", "",
 	// E0-E7
-	"", "", "", "", "", "", "", "",
+	"psu0-present-l", "psu1-present-l",
+	"psu0-power-good", "psu1-power-good",
+	"psu0-acok", "psu1-acok", "", "",
 	// F0-F7
 	"", "", "", "", "", "", "", "",
 	// G0-G7
 	"", "", "", "", "", "", "", "",
 	// H0-H7
 	"", "", "", "", "", "", "", "";
-	// Continue naming only the GPIOs Q2C uses
 };
 
-// Q2C Network Configuration
-// Override if Q2C uses NC-SI or different network configuration
-/* Example: Use NC-SI instead of direct PHY
-&mac0 {
-	use-ncsi;
-};
-*/
-
-/* Example: Disable MAC1 if not used on Q2C
-&mac1 {
+// ---------------------------------------------------------------------------
+// Fan PWM/tach — NOT driven directly by AST2620 PWM hardware.
+// The Fan Extension Board handles all PWM and tach via I2C expander (i2c3).
+// ---------------------------------------------------------------------------
+&pwm_tacho {
 	status = "disabled";
 };
-*/
 
-// Q2C Flash Configuration
-// Override if Q2C uses different flash size or configuration
-/* Example: Increase flash speed
-&fmc {
-	flash@0 {
-		spi-max-frequency = <100000000>;
-	};
-};
-*/
+// ---------------------------------------------------------------------------
+// UART / Console
+//
+// Confirmed from block diagram (pg 9 - UART Interface):
+//   UART0_BMC + UART1_BMC both feed into a physical MUX.
+//   MUX select: UART_SEL push-button (duration < 5 seconds).
+//   MUX output → Console Board → RS-232 transceiver → UART_RJ45 connector.
+//
+//   Other signals on the same MUX:
+//     UART0_MAC / UART1_MAC  — BCM88820 switch ASIC console
+//     UART0_CPU / UART1_CPU  — AMD x86 COMe console
+//
+//   AST2620 UART0 (ttyS0) = UART0_BMC → BMC console (default MUX position)
+//   AST2620 UART1 (ttyS1) = UART1_BMC → alternate / passthrough
+//
+//   Verify exact ttyS number from DC-SCM schematic and U-Boot boot log.
+// ---------------------------------------------------------------------------
 
-/* Example: Add host flash on SPI1
-&spi1 {
-	flash@0 {
-		status = "okay";
-		compatible = "jedec,spi-nor";
-		reg = <0>;
-		label = "host-firmware";
-		m25p,fast-read;
-		spi-max-frequency = <100000000>;
-	};
-};
-*/
+// ---------------------------------------------------------------------------
+// Management Network
+//
+// Two management paths confirmed from block diagram (pg 5, 10):
+//
+//   1. OOB NIC — Intel I210 attached to DC-SCM via PCIe Gen2 x1 (PCIe4 lane).
+//      Exposed as eth0 (or pci-based netdev) on the BMC Linux.
+//      Provides the dedicated out-of-band management MDI port.
+//
+//   2. NCSI — AMD x86 COMe NIC → DC-SCM mac1 (in-band management path).
+//      mac1 uses NC-SI to share the host NIC for BMC management traffic.
+//      Enable by setting use-ncsi on the correct MAC below.
+//
+// Uncomment the appropriate MAC for NCSI once the DC-SCM schematic confirms
+// which AST2620 MAC (mac0 or mac1) is wired to the NCSI link:
+// ---------------------------------------------------------------------------
+// &mac1 {
+//     use-ncsi;
+// };
 
-// Q2C Fan Configuration
-&pwm_tacho {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pwm0_default &pinctrl_pwm1_default
-		     &pinctrl_pwm2_default &pinctrl_pwm3_default>;
-
-	// Fan 0
-	fan@0 {
-		reg = <0x00>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x00>;
-		cooling-min-state = <0>;
-		cooling-max-state = <3>;
-		#cooling-cells = <2>;
-		cooling-levels = <125 151 177 203 229 255>;
-		aspeed,pulse-pr = <2>;
-		label = "fan0";
-	};
-
-	// Fan 1
-	fan@1 {
-		reg = <0x01>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x01>;
-		cooling-min-state = <0>;
-		cooling-max-state = <3>;
-		#cooling-cells = <2>;
-		cooling-levels = <125 151 177 203 229 255>;
-		aspeed,pulse-pr = <2>;
-		label = "fan1";
-	};
-
-	// Fan 2
-	fan@2 {
-		reg = <0x02>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x02>;
-		cooling-min-state = <0>;
-		cooling-max-state = <3>;
-		#cooling-cells = <2>;
-		cooling-levels = <125 151 177 203 229 255>;
-		aspeed,pulse-pr = <2>;
-		label = "fan2";
-	};
-
-	// Fan 3
-	fan@3 {
-		reg = <0x03>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x03>;
-		cooling-min-state = <0>;
-		cooling-max-state = <3>;
-		#cooling-cells = <2>;
-		cooling-levels = <125 151 177 203 229 255>;
-		aspeed,pulse-pr = <2>;
-		label = "fan3";
-	};
-
-	// Add more fans as needed (up to 8 PWM channels on AST2600)
-};
-
-// Q2C Serial/UART Configuration
-// Override if Q2C uses additional UARTs for host console, etc.
-/* Example: Enable additional UART for host console
-&uart1 {
-	status = "okay";
-};
-
-&uart2 {
-	status = "okay";
-};
-*/
-
-// Q2C IPMI KCS Interfaces
-// Override if Q2C uses different KCS addresses
-/* Example: Change KCS addresses
-&kcs1 {
-	aspeed,lpc-io-reg = <0xca0>;
-};
-
-&kcs2 {
-	aspeed,lpc-io-reg = <0xca8>;
-};
-
-&kcs3 {
-	aspeed,lpc-io-reg = <0xca2>;
-};
-*/
-
-// Q2C LPC Configuration
-/* Example: Change snoop port
-&lpc_snoop {
-	snoop-ports = <0x80>;
-};
-*/
-
-// TODO: Customize this device tree based on actual Q2C hardware:
-// 1. Update LED GPIOs to match Q2C board
-// 2. Add all I2C sensors and devices present on Q2C
-// 3. Configure correct GPIO names and functions
-// 4. Set up fans with correct PWM/Tach channels
-// 5. Configure network (NC-SI vs direct PHY)
-// 6. Add any Q2C-specific peripherals
-// 7. Update serial console if different from ttyS4
-// 8. Configure host interface (IPMI KCS addresses, etc.)
+// ---------------------------------------------------------------------------
+// TODO (requires DC-SCM board schematic — slides 12-13 of block diagram):
+//  1. Confirm i2c bus numbers for SCM FRU, temp sensors, mailbox, PSU, fans
+//  2. Verify EEPROM compatible string (24c128 vs st,m24128) and pagesize
+//  3. Set actual LM75 / TMP435 I2C addresses (A0/A1/A2 resistor straps)
+//  4. Set actual PSU PMBus addresses and PCA9548#15 channel numbers
+//  5. Identify and add mailbox chip node (SCM PLD mailbox, i2c0)
+//  6. Add fan expander chip node when model confirmed (i2c3)
+//  7. Set SGPIO bit count and verify LED bit assignments with SCM PLD firmware
+//  8. Name all GPIO lines used for power/reset/presence/fault signals
+//  9. Confirm which AST2620 MAC is wired for NCSI (mac0 or mac1) — enable it
+// 10. Verify UART console ttyS number from U-Boot boot log
+// ---------------------------------------------------------------------------

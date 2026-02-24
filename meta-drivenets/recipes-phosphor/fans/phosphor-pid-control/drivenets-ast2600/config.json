@@ -1,0 +1,173 @@
+{
+    "sensors": [
+        {
+            "name": "Inlet_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Inlet_Temp",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "CPU_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/CPU_Temp",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan0",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan0",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm1",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan1",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan1",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm2",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan2",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan2",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm3",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan3",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan3",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm4",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        }
+    ],
+    "zones": [
+        {
+            "id": 0,
+            "minThermalOutput": 30.0,
+            "failsafePercent": 75.0,
+            "pids": [
+                {
+                    "name": "inlet_temp",
+                    "type": "temp",
+                    "inputs": ["Inlet_Temp"],
+                    "setpoint": 40.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.0,
+                        "integralCoeff": 0.5,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": 30.0,
+                        "iLimitMax": 100.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "cpu_temp",
+                    "type": "temp",
+                    "inputs": ["CPU_Temp"],
+                    "setpoint": 70.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.0,
+                        "integralCoeff": 0.5,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": 30.0,
+                        "iLimitMax": 100.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan0_pid",
+                    "type": "fan",
+                    "inputs": ["Fan0"],
+                    "setpoint": 5000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan1_pid",
+                    "type": "fan",
+                    "inputs": ["Fan1"],
+                    "setpoint": 5000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan2_pid",
+                    "type": "fan",
+                    "inputs": ["Fan2"],
+                    "setpoint": 5000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan3_pid",
+                    "type": "fan",
+                    "inputs": ["Fan3"],
+                    "setpoint": 5000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                }
+            ]
+        }
+    ]
+}

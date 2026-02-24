@@ -1,0 +1,18 @@
+{
+    "Exposes": [
+        {
+            "Name": "DriveNets AST2600 BMC",
+            "Type": "Bmc",
+            "xyz.openbmc_project.Inventory.Decorator.Asset": {
+                "Manufacturer": "DriveNets",
+                "Model": "AST2600-BMC",
+                "PartNumber": "DN-BMC-001",
+                "SerialNumber": "000000000001"
+            },
+            "xyz.openbmc_project.Common.UUID": {
+                "UUID": "12345678-1234-5678-1234-567812345678"
+            }
+        }
+    ],
+    "Name": "DriveNets AST2600 Platform"
+}

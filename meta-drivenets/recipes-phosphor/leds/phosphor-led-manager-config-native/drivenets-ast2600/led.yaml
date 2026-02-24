@@ -1,0 +1,34 @@
+# LED Group configuration for drivenets-ast2600 (AST2600 EVB-based)
+#
+# Groups map logical BMC events to physical LED actions.
+# Action values: "On", "Off", "Blink"
+# DutyOn: duty cycle (%) when blinking
+# Period:  blink period in milliseconds
+#
+# LED names must match the `label` properties in the device tree
+# (gpio-leds node).  Update when the DTS is customised for real hw.
+
+bmc_booted:
+    - name: "bmc/booted"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+enclosure_identify:
+    - name: "enclosure/identify"
+      Action: "Blink"
+      DutyOn: 50
+      Period: 1000
+
+enclosure_identify_blink:
+    - name: "enclosure/identify"
+      Action: "Blink"
+      DutyOn: 50
+      Period: 1000
+
+# Fault indication: turn on the fault LED
+system_fault:
+    - name: "bmc/fault"
+      Action: "On"
+      DutyOn: 50
+      Period: 0

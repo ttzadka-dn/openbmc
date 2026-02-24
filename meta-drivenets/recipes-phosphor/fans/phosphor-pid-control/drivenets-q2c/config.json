@@ -1,0 +1,228 @@
+{
+    "_comment": [
+        "Q2C Fan Architecture (confirmed from block diagram):",
+        "  - The AST2600 BMC is on the SCM (System Control Module) board.",
+        "  - 4 fan connectors on the carrier board: Fan0..Fan3.",
+        "  - Fans are NOT driven directly by AST2600 PWM hardware.",
+        "  - A Fan Expander Board (schematic pg 59) is controlled via I2C",
+        "    (SDA_FAN_EXP / SCL_FAN_EXP) from the SCM board.",
+        "  - Fan expander chip model and I2C address: see SCM board schematic.",
+        "  - writePath values below are PLACEHOLDERS — update after driver bringup.",
+        "Temperature sensors used as PID inputs:",
+        "  - Inlet_Temp / Outlet_Temp: LM75 sensors on SCM board (block diagram)",
+        "  - Board_Temp_0: carrier board LM75#0 (schematic LM75#0_TEMP_ALERT_L pg 34)",
+        "  - Board_Temp_1: carrier board LM75#1",
+        "  - Board_Temp_2: carrier board LM75#2"
+    ],
+    "sensors": [
+        {
+            "name": "Inlet_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Inlet_Temp",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Outlet_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Outlet_Temp",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Board_Temp_0",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Board_Temp_0",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Board_Temp_1",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Board_Temp_1",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Board_Temp_2",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Board_Temp_2",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan0",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan0",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm1",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan1",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan1",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm2",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan2",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan2",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm3",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        },
+        {
+            "name": "Fan3",
+            "type": "fan",
+            "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan3",
+            "writePath": "/sys/class/hwmon/hwmon0/pwm4",
+            "timeout": 0,
+            "ignoreDbusMinMax": true
+        }
+    ],
+    "zones": [
+        {
+            "id": 0,
+            "minThermalOutput": 30.0,
+            "failsafePercent": 75.0,
+            "pids": [
+                {
+                    "name": "inlet_temp_pid",
+                    "type": "temp",
+                    "inputs": ["Inlet_Temp"],
+                    "setpoint": 38.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.0,
+                        "integralCoeff": 0.5,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": 30.0,
+                        "iLimitMax": 100.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "board_temp_0_pid",
+                    "type": "temp",
+                    "inputs": ["Board_Temp_0"],
+                    "setpoint": 55.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.0,
+                        "integralCoeff": 0.5,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": 30.0,
+                        "iLimitMax": 100.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "outlet_temp_pid",
+                    "type": "temp",
+                    "inputs": ["Outlet_Temp"],
+                    "setpoint": 65.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.0,
+                        "integralCoeff": 0.5,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": 30.0,
+                        "iLimitMax": 100.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan0_pid",
+                    "type": "fan",
+                    "inputs": ["Fan0"],
+                    "setpoint": 6000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan1_pid",
+                    "type": "fan",
+                    "inputs": ["Fan1"],
+                    "setpoint": 6000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan2_pid",
+                    "type": "fan",
+                    "inputs": ["Fan2"],
+                    "setpoint": 6000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "fan3_pid",
+                    "type": "fan",
+                    "inputs": ["Fan3"],
+                    "setpoint": 6000.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.01,
+                        "integralCoeff": 0.0,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": -20.0,
+                        "iLimitMax": 20.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                }
+            ]
+        }
+    ]
+}

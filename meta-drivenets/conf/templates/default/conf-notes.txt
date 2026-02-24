@@ -1,5 +1,6 @@
 Common targets are:
-    obmc-phosphor-image
+     obmc-phosphor-image
 
-You can also run generated qemu images with:
-    runqemu nographic slirp
+DriveNets machines:
+     drivenets-ast2600   (AST2600 EVB — development/bringup target)
+     drivenets-q2c       (Q2C DC-SCM production platform, AST2620)

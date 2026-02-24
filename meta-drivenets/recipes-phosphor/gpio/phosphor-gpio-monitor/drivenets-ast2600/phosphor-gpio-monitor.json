@@ -1,0 +1,16 @@
+[
+    {
+        "GpioPin": "power-button",
+        "EventMon": "FALLING",
+        "TimerInterval": 0,
+        "Target": "phosphor-poweroff.target",
+        "Comment": "Short power-button press → request host power-off"
+    },
+    {
+        "GpioPin": "reset-button",
+        "EventMon": "FALLING",
+        "TimerInterval": 0,
+        "Target": "phosphor-reboot.target",
+        "Comment": "Reset button press → request host reboot"
+    }
+]

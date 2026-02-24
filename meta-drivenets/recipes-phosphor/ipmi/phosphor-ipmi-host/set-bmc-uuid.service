@@ -1,0 +1,12 @@
+[Unit]
+Description=Initialize BMC UUID
+Before=xyz.openbmc_project.Network.service
+Before=phosphor-ipmi-host.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/set-bmc-uuid.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

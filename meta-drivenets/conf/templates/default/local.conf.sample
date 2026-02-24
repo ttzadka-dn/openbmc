@@ -1,7 +1,6 @@
 MACHINE ??= "drivenets-ast2600"
 DISTRO ?= "openbmc-phosphor"
 PACKAGE_CLASSES ?= "package_ipk"
-SANITY_TESTED_DISTROS:append ?= " *"
 EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
 USER_CLASSES ?= "buildstats"
 PATCHRESOLVE = "noop"
@@ -15,11 +14,3 @@ BB_DISKMON_DIRS ??= "\
     HALT,${SSTATE_DIR},100M,1K \
     HALT,/tmp,10M,1K"
 CONF_VERSION = "2"
-
-require conf/machine/include/obmc-bsp-common.inc
-
-# Fix connectivity check for WSL or restricted networks
-CONNECTIVITY_CHECK_URIS = "https://www.google.com/"
-
-# Note: IMAGE_FEATURES can be customized in machine configuration
-# See meta-drivenets/conf/machine/drivenets-ast2600.conf for current settings

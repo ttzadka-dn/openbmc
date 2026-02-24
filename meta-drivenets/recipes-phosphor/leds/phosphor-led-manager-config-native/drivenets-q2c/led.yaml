@@ -1,0 +1,252 @@
+# LED Group configuration for drivenets-q2c
+#
+# Hardware context (block diagram 09172025 + schematic 8AESQ2CMB0A1G):
+#   The AST2620 BMC is on the DC-SCM module.
+#   Panel LEDs are driven via SGPIO from BMC → SCM PLD → panel LED drivers.
+#   The SCM PLD monitors the following signals which map to panel LEDs:
+#     SYNC (timing/synchronisation), SYS (system), FAN (fan aggregate),
+#     PS0 (PSU0), PS1 (PSU1)                         [block diagram pg 9]
+#
+#   Physical panel LEDs (schematic 8AESQ2CMB0A1G pg 103):
+#     SYSTEM_LED_G  / SYSTEM_LED_Y  — overall system status   (SYS)
+#     PSU0_LED_G    / PSU0_LED_Y    — PSU 0 status            (PS0)
+#     PSU1_LED_G    / PSU1_LED_Y    — PSU 1 status            (PS1)
+#     FAN_LED_G     / FAN_LED_Y     — aggregate fan status     (FAN)
+#     SYNC_LED_G    / SYNC_LED_Y    — timing/sync status      (SYNC)
+#     FAN0_LED_G    / FAN0_LED_Y    — Fan 0 individual status
+#     FAN1_LED_G    / FAN1_LED_Y    — Fan 1 individual status
+#     FAN2_LED_G    / FAN2_LED_Y    — Fan 2 individual status
+#     FAN3_LED_G    / FAN3_LED_Y    — Fan 3 individual status
+#
+# The "bmc/" prefix maps to the BMC inventory path in phosphor-led-manager.
+# LED names must match the gpio-line-names set in the SGPIO DTS node.
+#
+# Colour convention: green = healthy/active, amber = warning/fault.
+
+# Solid green system LED when BMC has finished booting
+bmc_booted:
+    - name: "bmc/status-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "bmc/status-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# Amber slow-blink during BMC initialisation / POST
+bmc_initializing:
+    - name: "bmc/status-amber"
+      Action: "Blink"
+      DutyOn: 50
+      Period: 500
+    - name: "bmc/status-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# Chassis identify: blink the system LED
+enclosure_identify:
+    - name: "enclosure/system-green"
+      Action: "Blink"
+      DutyOn: 50
+      Period: 1000
+
+enclosure_identify_blink:
+    - name: "enclosure/system-green"
+      Action: "Blink"
+      DutyOn: 50
+      Period: 1000
+
+# System fault: solid amber system LED
+system_fault:
+    - name: "bmc/status-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "bmc/status-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# PSU 0 healthy
+psu0_ok:
+    - name: "enclosure/psu0-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/psu0-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# PSU 0 fault
+psu0_fault:
+    - name: "enclosure/psu0-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/psu0-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# PSU 1 healthy
+psu1_ok:
+    - name: "enclosure/psu1-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/psu1-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# PSU 1 fault
+psu1_fault:
+    - name: "enclosure/psu1-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/psu1-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# Fan module healthy (aggregate)
+fan_ok:
+    - name: "enclosure/fan-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# Fan module fault (aggregate)
+fan_fault:
+    - name: "enclosure/fan-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# SYNC LED — timing / synchronisation healthy
+# SYNC signal monitored by SCM PLD (confirmed from block diagram pg 9: "SYNC")
+sync_ok:
+    - name: "enclosure/sync-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/sync-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# SYNC LED — timing / synchronisation fault or not locked
+sync_fault:
+    - name: "enclosure/sync-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/sync-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# SYNC LED — searching / acquiring lock (slow blink green)
+sync_searching:
+    - name: "enclosure/sync-green"
+      Action: "Blink"
+      DutyOn: 50
+      Period: 1000
+    - name: "enclosure/sync-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# Per-fan LEDs — individual fan healthy
+fan0_ok:
+    - name: "enclosure/fan0-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan0-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+fan1_ok:
+    - name: "enclosure/fan1-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan1-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+fan2_ok:
+    - name: "enclosure/fan2-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan2-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+fan3_ok:
+    - name: "enclosure/fan3-green"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan3-amber"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+# Per-fan LEDs — individual fan fault / absent
+fan0_fault:
+    - name: "enclosure/fan0-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan0-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+fan1_fault:
+    - name: "enclosure/fan1-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan1-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+fan2_fault:
+    - name: "enclosure/fan2-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan2-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
+
+fan3_fault:
+    - name: "enclosure/fan3-amber"
+      Action: "On"
+      DutyOn: 50
+      Period: 0
+    - name: "enclosure/fan3-green"
+      Action: "Off"
+      DutyOn: 50
+      Period: 0
