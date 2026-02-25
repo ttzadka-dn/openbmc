@@ -2,6 +2,7 @@
 Description=Initialize BMC UUID
 Before=xyz.openbmc_project.Network.service
 Before=phosphor-ipmi-host.service
+Before=xyz.openbmc_project.EntityManager.service
 
 [Service]
 Type=oneshot

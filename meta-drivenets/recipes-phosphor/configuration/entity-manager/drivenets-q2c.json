@@ -8,9 +8,6 @@
                 "Model": "Q2C-SCM-BMC",
                 "PartNumber": "DN-Q2C-SCM-001",
                 "SerialNumber": "000000000001"
-            },
-            "xyz.openbmc_project.Common.UUID": {
-                "UUID": "12345678-1234-5678-1234-567812345679"
             }
         },
         {
@@ -190,5 +187,7 @@
             "xyz.openbmc_project.FruDevice": {}
         }
     ],
-    "Name": "DriveNets Q2C Platform"
+    "Name": "DriveNets Q2C Platform",
+    "Probe": "TRUE",
+    "Type": "Board"
 }

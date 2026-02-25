@@ -1,7 +1,7 @@
 {
-    "/sys/bus/i2c/devices/4-0050/eeprom": {
+    "/sys/bus/i2c/devices/0-0050/eeprom": {
         "fruid": 1,
         "path": "/xyz/openbmc_project/FruDevice/Board_FRU",
-        "comment": "Board FRU EEPROM: I2C bus 4, address 0x50 (24C256)"
+        "comment": "Board FRU EEPROM: I2C bus 0, address 0x50"
     }
 }
