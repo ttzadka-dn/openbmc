@@ -23,7 +23,6 @@
         {
             "Name": "DriveNets Q2C SCM",
             "Type": "Board",
-            "Comment": "SCM (System Control Module) board hosting the AST2600 BMC",
             "xyz.openbmc_project.Inventory.Decorator.Asset": {
                 "Manufacturer": "DriveNets",
                 "Model": "Q2C-SCM",
@@ -37,7 +36,7 @@
         {
             "Name": "PSU0",
             "Type": "PowerSupply",
-            "Comment": "PSU0 — PMBus via PCA9548#15 mux @ 0x71 on carrier board (schematic pg 3)",
+            "Comment": "PSU0 — PMBus at 0x58 via PCA9548#15 mux CH0 on bus 5",
             "xyz.openbmc_project.Inventory.Decorator.Asset": {
                 "Manufacturer": "Unknown",
                 "Model": "PSU-Model",
@@ -50,7 +49,7 @@
         {
             "Name": "PSU1",
             "Type": "PowerSupply",
-            "Comment": "PSU1 — PMBus via PCA9548#15 mux @ 0x71 on carrier board (schematic pg 3)",
+            "Comment": "PSU1 — PMBus at 0x58 via PCA9548#15 mux CH1 on bus 5",
             "xyz.openbmc_project.Inventory.Decorator.Asset": {
                 "Manufacturer": "Unknown",
                 "Model": "PSU-Model",
@@ -63,37 +62,37 @@
         {
             "Name": "Fan0",
             "Type": "Fan",
-            "Comment": "Fan connector 0 — driven by Fan Extension Board via I2C (schematic pg 59)",
+            "Comment": "Fan module 0 — EEPROM at 0x50 via PCA9548#16 CH0 on bus 5",
             "xyz.openbmc_project.Inventory.Item.Fan": {},
             "xyz.openbmc_project.State.Decorator.OperationalStatus": {}
         },
         {
             "Name": "Fan1",
             "Type": "Fan",
-            "Comment": "Fan connector 1 — driven by Fan Extension Board via I2C",
+            "Comment": "Fan module 1 — EEPROM at 0x50 via PCA9548#16 CH1 on bus 5",
             "xyz.openbmc_project.Inventory.Item.Fan": {},
             "xyz.openbmc_project.State.Decorator.OperationalStatus": {}
         },
         {
             "Name": "Fan2",
             "Type": "Fan",
-            "Comment": "Fan connector 2 — driven by Fan Extension Board via I2C",
+            "Comment": "Fan module 2 — EEPROM at 0x50 via PCA9548#16 CH2 on bus 5",
             "xyz.openbmc_project.Inventory.Item.Fan": {},
             "xyz.openbmc_project.State.Decorator.OperationalStatus": {}
         },
         {
             "Name": "Fan3",
             "Type": "Fan",
-            "Comment": "Fan connector 3 — driven by Fan Extension Board via I2C",
+            "Comment": "Fan module 3 — EEPROM at 0x50 via PCA9548#16 CH3 on bus 5",
             "xyz.openbmc_project.Inventory.Item.Fan": {},
             "xyz.openbmc_project.State.Decorator.OperationalStatus": {}
         },
         {
-            "Name": "Inlet_Temp",
-            "Type": "LM75",
+            "Name": "Ambient_Temp_AFO",
+            "Type": "TMP75",
             "Address": "0x48",
-            "Bus": 0,
-            "Comment": "SCM-local inlet temperature sensor (block diagram: 'Inlet Temp' on i2c_scm bus). Address placeholder — confirm A0/A1/A2 straps from SCM schematic.",
+            "Bus": 5,
+            "Comment": "TMP75#0 — Ambient Thermal Sensor For AFO on bus 5 (I2C_3V3_5)",
             "xyz.openbmc_project.Sensor.Threshold.Critical": {
                 "CriticalHigh": 80,
                 "CriticalLow": 0
@@ -104,11 +103,41 @@
             }
         },
         {
-            "Name": "Outlet_Temp",
-            "Type": "LM75",
+            "Name": "HotSpot_Temp",
+            "Type": "TMP75",
             "Address": "0x49",
-            "Bus": 0,
-            "Comment": "SCM-local outlet temperature sensor (block diagram: 'Outlet Temp' on i2c_scm bus). Address placeholder.",
+            "Bus": 5,
+            "Comment": "TMP75#1 — Hot Spot Thermal Sensor on bus 5 (I2C_3V3_5)",
+            "xyz.openbmc_project.Sensor.Threshold.Critical": {
+                "CriticalHigh": 85,
+                "CriticalLow": 0
+            },
+            "xyz.openbmc_project.Sensor.Threshold.Warning": {
+                "WarningHigh": 75,
+                "WarningLow": 5
+            }
+        },
+        {
+            "Name": "HotSpot_Temp_AFI",
+            "Type": "TMP75",
+            "Address": "0x4a",
+            "Bus": 5,
+            "Comment": "TMP75#2 — Hot Spot Thermal Sensor For AFI on bus 5 (I2C_3V3_5)",
+            "xyz.openbmc_project.Sensor.Threshold.Critical": {
+                "CriticalHigh": 85,
+                "CriticalLow": 0
+            },
+            "xyz.openbmc_project.Sensor.Threshold.Warning": {
+                "WarningHigh": 75,
+                "WarningLow": 5
+            }
+        },
+        {
+            "Name": "OP2_Temp",
+            "Type": "TMP75",
+            "Address": "0x4b",
+            "Bus": 5,
+            "Comment": "TMP75#3 — Thermal Sensor For OP2 on bus 5 (I2C_3V3_5)",
             "xyz.openbmc_project.Sensor.Threshold.Critical": {
                 "CriticalHigh": 90,
                 "CriticalLow": 0
@@ -119,56 +148,11 @@
             }
         },
         {
-            "Name": "Board_Temp_0",
-            "Type": "LM75",
-            "Address": "0x48",
-            "Bus": 2,
-            "Comment": "Carrier board LM75#0 temperature sensor (schematic LM75#0_TEMP_ALERT_L, pg 34). Address and bus are placeholders.",
-            "xyz.openbmc_project.Sensor.Threshold.Critical": {
-                "CriticalHigh": 80,
-                "CriticalLow": 0
-            },
-            "xyz.openbmc_project.Sensor.Threshold.Warning": {
-                "WarningHigh": 70,
-                "WarningLow": 5
-            }
-        },
-        {
-            "Name": "Board_Temp_1",
-            "Type": "LM75",
-            "Address": "0x49",
-            "Bus": 2,
-            "Comment": "Carrier board LM75#1 temperature sensor. Address and bus are placeholders.",
-            "xyz.openbmc_project.Sensor.Threshold.Critical": {
-                "CriticalHigh": 80,
-                "CriticalLow": 0
-            },
-            "xyz.openbmc_project.Sensor.Threshold.Warning": {
-                "WarningHigh": 70,
-                "WarningLow": 5
-            }
-        },
-        {
-            "Name": "Board_Temp_2",
-            "Type": "LM75",
-            "Address": "0x4a",
-            "Bus": 2,
-            "Comment": "Carrier board LM75#2 temperature sensor. Address and bus are placeholders.",
-            "xyz.openbmc_project.Sensor.Threshold.Critical": {
-                "CriticalHigh": 80,
-                "CriticalLow": 0
-            },
-            "xyz.openbmc_project.Sensor.Threshold.Warning": {
-                "WarningHigh": 70,
-                "WarningLow": 5
-            }
-        },
-        {
             "Name": "CPU_Remote_Temp",
             "Type": "TMP435",
-            "Address": "0x4c",
-            "Bus": 2,
-            "Comment": "TMP435 CPU remote junction temperature sensor on carrier board (MAC_TEMP_ALERT_L, pg 34). Address and bus are placeholders.",
+            "Address": "0x4d",
+            "Bus": 5,
+            "Comment": "TMP435 dual-channel (local + CPU remote junction) on bus 5. Alert: MAC_TEMP_ALERT_L.",
             "xyz.openbmc_project.Sensor.Threshold.Critical": {
                 "CriticalHigh": 95,
                 "CriticalLow": 0
@@ -183,7 +167,7 @@
             "Type": "EEPROM",
             "Address": "0x50",
             "Bus": 0,
-            "Comment": "SCM-local FRU EEPROM (block diagram: 'SCM FRU' on i2c_scm bus, same bus as temp sensors). Likely AT24C128 or M24128. Address placeholder.",
+            "Comment": "SCM FRU EEPROM (AT24C128) on bus 0 (I2C_3V3_0). Stores DC-SCM VPD/asset data.",
             "xyz.openbmc_project.FruDevice": {}
         }
     ],

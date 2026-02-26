@@ -2,6 +2,6 @@
     "/sys/bus/i2c/devices/0-0050/eeprom": {
         "fruid": 1,
         "path": "/xyz/openbmc_project/FruDevice/SCM_FRU",
-        "comment": "SCM FRU EEPROM — physically on the SCM board alongside the AST2600 BMC (confirmed from Q2C block diagram: 'SCM FRU' on i2c_scm bus). Likely AT24C128 or M24128 (128 Kbit). I2C bus 0, address 0x50 are PLACEHOLDERS — verify from SCM board schematic."
+        "comment": "SCM FRU EEPROM — AT24C128 on I2C bus 0, address 0x50 (confirmed from schematic: I2C_3V3_0)"
     }
 }

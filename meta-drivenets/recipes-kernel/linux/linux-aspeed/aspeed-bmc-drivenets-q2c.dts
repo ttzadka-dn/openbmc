@@ -5,7 +5,8 @@
 // BMC SoC: ASPEED AST2620 (AST2600-family variant)
 //
 // ============================================================================
-// ARCHITECTURE (confirmed from block diagram DriveNets_Q2C_09172025.pdf)
+// ARCHITECTURE (confirmed from schematic 8AESQ2CMB0A1G_SCH_20251217D
+//               and I2C tree diagram Q2C_I2C_Tree_20260123)
 // ============================================================================
 //
 //  The AST2620 BMC is on the DC-SCM (Data Center Secure Control Module),
@@ -13,42 +14,34 @@
 //  (part number 8AESQ2CMB0A1G).  The DC-SCM plugs into the Q2C carrier board
 //  via a Gold Finger connector.
 //
-//  Devices physically ON the DC-SCM board (direct AST2620 I2C):
-//    i2c_scm bus  →  SCM FRU EEPROM, Inlet Temp sensor, Outlet Temp sensor,
-//                    Mailbox register interface (to SCM PLD / Board Controller)
-//
-//  Carrier-board devices reachable via DC-SCM Gold Finger:
-//    Fan Extension Board  — i2c via SDA_FAN_EXP/SCL_FAN_EXP; 4 fans Fan0–Fan3
-//                           PWM+tach+present+direction+per-fan LEDs
-//    PSU0, PSU1           — PMBus via PCA9548#15 I2C mux @ 0x71 (sch pg 3)
-//    LM75#0/1/2           — carrier board temperature sensors (sch pg 34)
-//    TMP435               — CPU remote junction temp (MAC_TEMP_ALERT_L, sch pg 34)
-//    PCA9548#16 I2C mux   — on fan extension board bus (sch pg 59)
+//  I2C Bus Map (confirmed from schematic signal names and I2C tree):
+//    Bus 0 (I2C_3V3_0) : SCM FRU EEPROM at 0x50
+//    Bus 4 (I2C_3V3_4) : PCA9539#27 GPIO expander at 0x74 (BIOS updates)
+//    Bus 5 (I2C_3V3_5) : Main sensor/management bus
+//      Direct:  UCD90120A (0x34), TMP435 (0x4D), TMP75#0-3 (0x48-0x4B)
+//      Muxed:   PCA9548#16 (0x72) fan ext board, PCA9548#15 (0x71) PSU/VR
 //
 //  Host CPU: AMD x86 (COMe module)
 //
 //  Management networking:
-//    OOB NIC — Intel I210 attached to DC-SCM via PCIe Gen2 x1 → MDI (block diag pg 5,10)
-//    NCSI    — AMD x86 COMe NIC → DC-SCM mac1 (in-band management path)
+//    OOB NIC — Intel I210 via PCIe Gen2 x1 (reset: I210_RST_L, sch pg 4/55)
+//    NCSI    — AMD x86 COMe NIC → DC-SCM MAC (TBD: mac0 or mac1)
 //
 //  UART / Console:
-//    UART0_BMC + UART1_BMC → physical MUX (UART_SEL push-button, <5s)
-//    MUX output → Console Board → UART_RJ45 (RS-232 transceiver)
-//    UART0_MAC (BCM88820), UART0_CPU/UART1_CPU (AMD x86 COMe) also on the MUX
-//    Console is ttyS0 (UART0_BMC) — verify UART_SEL default from DC-SCM schematic.
+//    UART0_BMC + UART1_BMC → physical MUX (UART_SEL push-button)
+//    MUX output → Console Board → UART_RJ45 (RS-232)
+//    Console UART: TBD (ttyS0 or ttyS4)
 //
-//  SGPIO → SCM PLD → panel LEDs:
-//    SYNC, SYS, FAN, PS0, PS1 monitored by SCM PLD / Board Controller (block diag pg 9)
+//  SGPIO → SCM PLD → panel LEDs (bit assignments TBD)
 //
-//  SPI Flash:  BMC Flash + BIOS Flash via PFR/ROT chip (PCIe from DC-SCM → PFR/ROT)
-//
-//  NOTE on I2C bus numbers:
-//    Bus numbers (i2c0, i2c1, etc.) are PLACEHOLDERS.
-//    Verify exact AST2620 I2C bus assignments from the DC-SCM SPI/I2C block diagram
-//    slides (pages 12–13 of DriveNets_Q2C_09172025.pdf) or by running:
-//      i2cdetect -l     on a running BMC
+//  Fan control: mechanism TBD (no dedicated fan controller IC found;
+//               possibly via CPLD/PLD or fan module built-in controllers)
 // ============================================================================
 
+// TODO: For production, replace this EVB include with the SoC dtsi
+// (#include "aspeed-g6.dtsi") and explicitly enable only the peripherals
+// Q2C needs (fmc, spi, uart, mac, i2c, etc.).  Keeping EVB for now to
+// inherit working flash/uart/mac defaults while I2C topology is validated.
 #include "aspeed-ast2600-evb.dts"
 
 / {
@@ -58,184 +51,233 @@
 };
 
 // ---------------------------------------------------------------------------
-// i2c0 — DC-SCM local bus
+// i2c0 — SCM local bus (I2C_3V3_0, Gold Finger A15/A16)
 //
-// Devices confirmed from Q2C block diagram ('DC-SCM I2C Block Diagram' pg 13):
-//   • SCM FRU EEPROM  — stores DC-SCM inventory / VPD asset data
-//   • Inlet Temp      — LM75 at air inlet of the DC-SCM / chassis
-//   • Outlet Temp     — LM75 at exhaust air outlet
-//   • Mailbox         — I2C register interface to SCM PLD / Board Controller
-//                       (the PLD monitors SYNC, SYS, FAN, PS0, PS1 signals)
-//
-// All addresses are PLACEHOLDERS — verify from DC-SCM board schematic.
+// Confirmed: FRU EEPROM only.
+// Signal: SCL0/SDA0 on DC-SCM connector.
 // ---------------------------------------------------------------------------
 &i2c0 {
 	status = "okay";
 
-	// SCM FRU EEPROM — stores DC-SCM VPD / asset data
-	// AT24C128 (128 Kbit) or ST M24128; pagesize = 64 bytes
 	scm_fru: eeprom@50 {
 		compatible = "atmel,24c128";
 		reg = <0x50>;
 		label = "scm_fru";
 		pagesize = <64>;
 	};
-
-	// Inlet temperature (air entering the chassis)
-	// LM75 A2=A1=A0=0 → address 0x48 (typical default)
-	inlet_temp: temperature-sensor@48 {
-		compatible = "lm75";
-		reg = <0x48>;
-		label = "inlet_temp";
-		#thermal-sensor-cells = <0>;
-	};
-
-	// Outlet temperature (exhaust air leaving the chassis)
-	// A2=A1=A0=1 → address 0x49 (typical for second sensor on same bus)
-	outlet_temp: temperature-sensor@49 {
-		compatible = "lm75";
-		reg = <0x49>;
-		label = "outlet_temp";
-		#thermal-sensor-cells = <0>;
-	};
-
-	// Mailbox — I2C register interface to SCM PLD / Board Controller
-	// The PLD aggregates monitoring of: SYNC, SYS, FAN, PS0, PS1 signals.
-	// Uncomment when chip model is confirmed from DC-SCM schematic:
-	// scm_pld_mbox: i2c-device@40 {
-	//     compatible = "nxp,pca9554";   // or "microchip,mcp23008", etc.
-	//     reg = <0x40>;
-	// };
 };
 
 // ---------------------------------------------------------------------------
-// i2c1 — PSU management bus (carrier board, via DC-SCM Gold Finger)
+// i2c4 — BIOS update bus (I2C_3V3_4, Gold Finger A45/A46)
 //
-// PCA9548#15 I2C mux @ 0x71 on carrier board (schematic 8AESQ2CMB0A1G pg 3)
-// PSU0 on one mux channel, PSU1 on another (PMBus).
-// Channel numbers and PSU PMBus addresses: PLACEHOLDERS.
+// Confirmed: PCA9539#27 GPIO expander for BIOS updates.
 // ---------------------------------------------------------------------------
-&i2c1 {
+&i2c4 {
 	status = "okay";
 
-	psu_mux: i2c-mux@71 {
+	bios_gpio: pca9539@74 {
+		compatible = "nxp,pca9539";
+		reg = <0x74>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
+
+// ---------------------------------------------------------------------------
+// i2c5 — Main sensor/management bus (I2C_3V3_5, Gold Finger A47/A48)
+//
+// Signal name: SCL5_BMC_CPLD_UCD_FRU / SDA5_BMC_CPLD_UCD_FRU
+//
+// Direct devices (confirmed from schematic pg 34 and I2C tree):
+//   UCD90120A   — power sequencer at 0x34
+//   TMP435      — dual-channel temp (local + CPU remote) at 0x4D
+//   TMP75#0     — Ambient Thermal Sensor For AFO at 0x48
+//   TMP75#1     — Hot Spot Thermal Sensor at 0x49
+//   TMP75#2     — Hot Spot Thermal Sensor For AFI at 0x4A
+//   TMP75#3     — Thermal Sensor For OP2 at 0x4B
+//
+// Muxed devices:
+//   PCA9548#16  — Fan Extension Board mux at 0x72 (reset: 9548#16_RST_L)
+//   PCA9548#15  — PSU / Voltage Regulator mux at 0x71
+// ---------------------------------------------------------------------------
+&i2c5 {
+	status = "okay";
+
+	ucd90120a: ucd90120a@34 {
+		compatible = "ti,ucd90120a";
+		reg = <0x34>;
+	};
+
+	tmp435: temperature-sensor@4d {
+		compatible = "ti,tmp435";
+		reg = <0x4d>;
+		label = "cpu_temp";
+		#thermal-sensor-cells = <1>;
+	};
+
+	tmp75_0: temperature-sensor@48 {
+		compatible = "ti,tmp75";
+		reg = <0x48>;
+		label = "ambient_temp_afo";
+		#thermal-sensor-cells = <0>;
+	};
+
+	tmp75_1: temperature-sensor@49 {
+		compatible = "ti,tmp75";
+		reg = <0x49>;
+		label = "hotspot_temp";
+		#thermal-sensor-cells = <0>;
+	};
+
+	tmp75_2: temperature-sensor@4a {
+		compatible = "ti,tmp75";
+		reg = <0x4a>;
+		label = "hotspot_temp_afi";
+		#thermal-sensor-cells = <0>;
+	};
+
+	tmp75_3: temperature-sensor@4b {
+		compatible = "ti,tmp75";
+		reg = <0x4b>;
+		label = "op2_temp";
+		#thermal-sensor-cells = <0>;
+	};
+
+	// PCA9548#16 — Fan Extension Board mux
+	fan_mux: i2c-mux@72 {
+		compatible = "nxp,pca9548";
+		reg = <0x72>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		i2c-mux-idle-disconnect;
+
+		i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+			fan0_eeprom: eeprom@50 {
+				compatible = "atmel,24c32";
+				reg = <0x50>;
+				label = "fan0_fru";
+			};
+		};
+
+		i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+			fan1_eeprom: eeprom@50 {
+				compatible = "atmel,24c32";
+				reg = <0x50>;
+				label = "fan1_fru";
+			};
+		};
+
+		i2c@2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+			fan2_eeprom: eeprom@50 {
+				compatible = "atmel,24c32";
+				reg = <0x50>;
+				label = "fan2_fru";
+			};
+		};
+
+		i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+			fan3_eeprom: eeprom@50 {
+				compatible = "atmel,24c32";
+				reg = <0x50>;
+				label = "fan3_fru";
+			};
+		};
+
+		i2c@4 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <4>;
+			fan_board_eeprom: eeprom@57 {
+				compatible = "atmel,24c32";
+				reg = <0x57>;
+				label = "fan_board_fru";
+			};
+		};
+	};
+
+	// PCA9548#15 — PSU and Voltage Regulator mux
+	psu_vr_mux: i2c-mux@71 {
 		compatible = "nxp,pca9548";
 		reg = <0x71>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 		i2c-mux-idle-disconnect;
 
-		// PSU0 PMBus — verify channel (5) and address (0x58) from carrier schematic
-		i2c@5 {
+		// CH0: PSU0 (via ISO level shifter)
+		i2c@0 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <5>;
+			reg = <0>;
 			psu0: power-supply@58 {
 				compatible = "pmbus";
 				reg = <0x58>;
 				label = "psu0";
 			};
+			psu0_eeprom: eeprom@50 {
+				compatible = "atmel,24c32";
+				reg = <0x50>;
+				label = "psu0_fru";
+			};
 		};
 
-		// PSU1 PMBus — verify channel (6) and address (0x58) from carrier schematic
-		i2c@6 {
+		// CH1: PSU1 (via ISO level shifter)
+		i2c@1 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <6>;
+			reg = <1>;
 			psu1: power-supply@58 {
 				compatible = "pmbus";
 				reg = <0x58>;
 				label = "psu1";
+			};
+			psu1_eeprom: eeprom@50 {
+				compatible = "atmel,24c32";
+				reg = <0x50>;
+				label = "psu1_fru";
+			};
+		};
+
+		// CH3: Voltage regulators
+		i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+			xdpe1a2g5bv: pmbus@76 {
+				compatible = "pmbus";
+				reg = <0x76>;
+			};
+			tda38740a: pmbus@45 {
+				compatible = "pmbus";
+				reg = <0x45>;
+			};
+			tps549a20: pmbus@1d {
+				compatible = "pmbus";
+				reg = <0x1d>;
+			};
+			xdpe19284c: pmbus@60 {
+				compatible = "pmbus";
+				reg = <0x60>;
 			};
 		};
 	};
 };
 
 // ---------------------------------------------------------------------------
-// i2c2 — Carrier board temperature sensors (via DC-SCM Gold Finger)
-//
-// Three LM75-compatible sensors (schematic 8AESQ2CMB0A1G pg 34):
-//   LM75#0  (alert: LM75#0_TEMP_ALERT_L) — ambient / inlet
-//   LM75#1  (alert: LM75#1_TEMP_ALERT_L) — mid-board
-//   LM75#2  (alert: LM75#2_TEMP_ALERT_L) — outlet / near exhaust fans
-//
-// TMP435 — dual-channel (local + CPU remote junction temperature)
-//   Alert: MAC_TEMP_ALERT_L (sch pg 34)
-//
-// Addresses set by A0/A1/A2 resistor straps — PLACEHOLDERS below.
-// ---------------------------------------------------------------------------
-&i2c2 {
-	status = "okay";
-
-	lm75_0: temperature-sensor@48 {
-		compatible = "lm75";
-		reg = <0x48>;
-		label = "board_temp_0";
-		#thermal-sensor-cells = <0>;
-	};
-
-	lm75_1: temperature-sensor@49 {
-		compatible = "lm75";
-		reg = <0x49>;
-		label = "board_temp_1";
-		#thermal-sensor-cells = <0>;
-	};
-
-	lm75_2: temperature-sensor@4a {
-		compatible = "lm75";
-		reg = <0x4a>;
-		label = "board_temp_2";
-		#thermal-sensor-cells = <0>;
-	};
-
-	// TMP435: channel 0 = local, channel 1 = CPU remote junction
-	tmp435: temperature-sensor@4c {
-		compatible = "ti,tmp435";
-		reg = <0x4c>;
-		label = "cpu_temp";
-		#thermal-sensor-cells = <1>;
-	};
-};
-
-// ---------------------------------------------------------------------------
-// i2c3 — Fan Extension Board (carrier board, via DC-SCM Gold Finger)
-//
-// The Fan Extension Board (schematic pg 59) aggregates 4 fan connectors.
-// Controlled via SDA_FAN_EXP / SCL_FAN_EXP from the DC-SCM Gold Finger.
-// Provides: FAN_PWM_0..3, FAN_TACH_0..3, FAN_PRESENT_0..3,
-//           FAN_DIRECTION_0..3, FAN0–3_LED_G, FAN0–3_LED_Y
-// Also on this bus: PCA9548#16 I2C mux (reset: 9548#16_RST_L).
-//
-// Fan expander chip model: TBD from DC-SCM schematic.
-// ---------------------------------------------------------------------------
-&i2c3 {
-	status = "okay";
-
-	// Fan expander — TBD; example MAX31790 (6-ch fan controller, addr 0x20):
-	// fan_ctrl: max31790@20 {
-	//     compatible = "maxim,max31790";
-	//     reg = <0x20>;
-	// };
-
-	// PCA9548#16 mux on fan extension board bus:
-	// fan_mux: i2c-mux@70 {
-	//     compatible = "nxp,pca9548";
-	//     reg = <0x70>;
-	//     #address-cells = <1>;
-	//     #size-cells = <0>;
-	//     i2c-mux-idle-disconnect;
-	// };
-};
-
-// ---------------------------------------------------------------------------
 // SGPIO — drives Q2C carrier board panel LEDs via SCM PLD
 //
-// Confirmed from block diagram (pg 9): SGPIO from BMC → SCM PLD → panel LEDs.
-// SCM PLD monitors the following signals which map to panel LEDs:
-//   SYNC, SYS, FAN, PS0 (PSU0), PS1 (PSU1)
-// Per-fan LEDs: FAN0–3_LED_G / FAN0–3_LED_Y (from schematic pg 103)
-//
-// Bit assignments are PLACEHOLDERS — verify from SCM PLD firmware / DC-SCM schematic.
+// Bit assignments are PLACEHOLDERS — verify from SCM PLD firmware.
 // ---------------------------------------------------------------------------
 &sgpio {
 	status = "okay";
@@ -255,8 +297,12 @@
 };
 
 // ---------------------------------------------------------------------------
-// GPIO — named lines used by the DC-SCM / carrier board
-// Populate when DC-SCM schematic is available.
+// GPIO — named lines from the DC-SCM / carrier board
+//
+// Signal names confirmed from schematic (pg 4, 32, 34, 94, 103).
+// Exact AST2620 GPIO pin assignments (bank/bit) are TBD — the signal
+// names below are placed in E0-E7 as PLACEHOLDERS.  Update once the
+// DC-SCM schematic GPIO mapping table is available.
 // ---------------------------------------------------------------------------
 &gpio0 {
 	gpio-line-names =
@@ -268,21 +314,27 @@
 	"", "", "", "", "", "", "", "",
 	// D0-D7
 	"", "", "", "", "", "", "", "",
-	// E0-E7
+	// E0-E7  (PLACEHOLDER pin assignments — signal names confirmed)
 	"psu0-present-l", "psu1-present-l",
 	"psu0-power-good", "psu1-power-good",
-	"psu0-acok", "psu1-acok", "", "",
-	// F0-F7
-	"", "", "", "", "", "", "", "",
+	"psu0-acok", "psu1-acok",
+	"psu0-pson-l", "psu1-pson-l",
+	// F0-F7  (PLACEHOLDER pin assignments — signal names confirmed)
+	"push-btn-rst-l", "sus-s3-l",
+	"sus-s4-l", "sus-s5-l",
+	"pwr-ok", "cpu-mb-cb-rst-l",
+	"rsmrst-out-l", "cpu-mb-wdt",
 	// G0-G7
-	"", "", "", "", "", "", "", "",
+	"mb-cpu-thrm-l", "i210-rst-l",
+	"", "", "", "", "", "",
 	// H0-H7
 	"", "", "", "", "", "", "", "";
 };
 
 // ---------------------------------------------------------------------------
 // Fan PWM/tach — NOT driven directly by AST2620 PWM hardware.
-// The Fan Extension Board handles all PWM and tach via I2C expander (i2c3).
+// Fan control mechanism is TBD (possibly via CPLD/PLD over I2C bus 5,
+// or fan module built-in controllers).
 // ---------------------------------------------------------------------------
 &pwm_tacho {
 	status = "disabled";
@@ -291,51 +343,42 @@
 // ---------------------------------------------------------------------------
 // UART / Console
 //
-// Confirmed from block diagram (pg 9 - UART Interface):
-//   UART0_BMC + UART1_BMC both feed into a physical MUX.
-//   MUX select: UART_SEL push-button (duration < 5 seconds).
-//   MUX output → Console Board → RS-232 transceiver → UART_RJ45 connector.
-//
-//   Other signals on the same MUX:
-//     UART0_MAC / UART1_MAC  — BCM88820 switch ASIC console
-//     UART0_CPU / UART1_CPU  — AMD x86 COMe console
-//
-//   AST2620 UART0 (ttyS0) = UART0_BMC → BMC console (default MUX position)
-//   AST2620 UART1 (ttyS1) = UART1_BMC → alternate / passthrough
-//
-//   Verify exact ttyS number from DC-SCM schematic and U-Boot boot log.
+// UART0_BMC + UART1_BMC → physical MUX → Console Board → UART_RJ45
+// Console UART: TBD (ttyS0 or ttyS4) — verify from U-Boot boot log.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Management Network
 //
-// Two management paths confirmed from block diagram (pg 5, 10):
+// 1. OOB NIC — Intel I210 via PCIe Gen2 x1 (reset: I210_RST_L)
+// 2. NCSI — AMD x86 COMe NIC → DC-SCM MAC (TBD: mac0 or mac1)
 //
-//   1. OOB NIC — Intel I210 attached to DC-SCM via PCIe Gen2 x1 (PCIe4 lane).
-//      Exposed as eth0 (or pci-based netdev) on the BMC Linux.
-//      Provides the dedicated out-of-band management MDI port.
-//
-//   2. NCSI — AMD x86 COMe NIC → DC-SCM mac1 (in-band management path).
-//      mac1 uses NC-SI to share the host NIC for BMC management traffic.
-//      Enable by setting use-ncsi on the correct MAC below.
-//
-// Uncomment the appropriate MAC for NCSI once the DC-SCM schematic confirms
-// which AST2620 MAC (mac0 or mac1) is wired to the NCSI link:
+// Uncomment once the correct MAC is identified:
 // ---------------------------------------------------------------------------
 // &mac1 {
 //     use-ncsi;
 // };
 
 // ---------------------------------------------------------------------------
-// TODO (requires DC-SCM board schematic — slides 12-13 of block diagram):
-//  1. Confirm i2c bus numbers for SCM FRU, temp sensors, mailbox, PSU, fans
-//  2. Verify EEPROM compatible string (24c128 vs st,m24128) and pagesize
-//  3. Set actual LM75 / TMP435 I2C addresses (A0/A1/A2 resistor straps)
-//  4. Set actual PSU PMBus addresses and PCA9548#15 channel numbers
-//  5. Identify and add mailbox chip node (SCM PLD mailbox, i2c0)
-//  6. Add fan expander chip node when model confirmed (i2c3)
-//  7. Set SGPIO bit count and verify LED bit assignments with SCM PLD firmware
-//  8. Name all GPIO lines used for power/reset/presence/fault signals
-//  9. Confirm which AST2620 MAC is wired for NCSI (mac0 or mac1) — enable it
-// 10. Verify UART console ttyS number from U-Boot boot log
+// RESOLVED from schematic analysis:
+//  [x] I2C bus numbers: bus 0 = FRU, bus 4 = BIOS GPIO, bus 5 = sensors/muxes
+//  [x] FRU EEPROM: AT24C128 at 0x50 on bus 0
+//  [x] TMP435 address: 0x4D on bus 5
+//  [x] TMP75 addresses: 0x48, 0x49, 0x4A, 0x4B on bus 5
+//  [x] UCD90120A power sequencer: 0x34 on bus 5
+//  [x] PCA9548#16 fan mux: 0x72 on bus 5, CH0-3=fan EEPROMs, CH4=board EEPROM
+//  [x] PCA9548#15 PSU/VR mux: 0x71 on bus 5, CH0=PSU0, CH1=PSU1, CH3=VRs
+//  [x] PSU PMBus address: 0x58 (both PSU0 and PSU1)
+//  [x] PSU mux channels: CH0=PSU0, CH1=PSU1 (not CH5/CH6 as initially guessed)
+//  [x] GPIO signal names: PSU presence/ACOK/PWOK/PSON, host control signals
+//
+// REMAINING TBD:
+//  1. Fan control hardware interface (CPLD? GPIO PWM? Fan module registers?)
+//  2. SGPIO bit assignments for panel LEDs (need SCM PLD firmware docs)
+//  3. Which MAC for NCSI (mac0 or mac1)
+//  4. Console UART (ttyS0 vs ttyS4)
+//  5. DRAM size and SPI flash size
+//  6. Exact GPIO pin assignments (bank/bit) for all named signals
+//  7. SCM PLD mailbox chip model and address (bus 0 or bus 5)
+//  8. PCA9539#27 usage details for BIOS updates (bus 4)
 // ---------------------------------------------------------------------------

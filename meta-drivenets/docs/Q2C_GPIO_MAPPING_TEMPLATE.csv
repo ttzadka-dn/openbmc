@@ -1,0 +1,19 @@
+GPIO_Pin,Bank,Bit,Direction,Purpose,Active_Level,Device_Tree_Macro,Connected_To,Schematic_Page,Notes,Status
+TBD,TBD,TBD,Input,PSU0 Presence Detect,Low (active low),TBD,PSU0 hot-swap connector,TBD,Signal: PSU0_PRESENT_ST_L; low = PSU0 installed,CONFIRMED
+TBD,TBD,TBD,Input,PSU1 Presence Detect,Low (active low),TBD,PSU1 hot-swap connector,TBD,Signal: PSU1_PRESENT_ST_L; low = PSU1 installed,CONFIRMED
+TBD,TBD,TBD,Input,PSU0 AC Input OK,High (active high),TBD,PSU0 AC-OK output,TBD,Signal: PSU0_ACOK; high = AC input within spec,CONFIRMED
+TBD,TBD,TBD,Input,PSU1 AC Input OK,High (active high),TBD,PSU1 AC-OK output,TBD,Signal: PSU1_ACOK; high = AC input within spec,CONFIRMED
+TBD,TBD,TBD,Input,PSU0 DC Power Good,High (active high),TBD,PSU0 power-good output,TBD,Signal: PSU0_PWOK_H; high = DC output OK,CONFIRMED
+TBD,TBD,TBD,Input,PSU1 DC Power Good,High (active high),TBD,PSU1 power-good output,TBD,Signal: PSU1_PWOK_H; high = DC output OK,CONFIRMED
+TBD,TBD,TBD,Output,PSU0 Power On Control,Low (active low),TBD,PSU0 PS_ON input,TBD,Signal: PSU0_PSON_L; assert low to enable PSU0,CONFIRMED
+TBD,TBD,TBD,Output,PSU1 Power On Control,Low (active low),TBD,PSU1 PS_ON input,TBD,Signal: PSU1_PSON_L; assert low to enable PSU1,CONFIRMED
+TBD,TBD,TBD,Input,Reset Button,Low (active low),TBD,Front panel reset button,32 and 34,Signal: PUSH_BTN_RST_L; active-low momentary,CONFIRMED
+TBD,TBD,TBD,Input,ACPI S3 Sleep State,Low (active low),TBD,AMD x86 host CPU,32 and 34,Signal: SUS_S3_L; host entering S3 suspend-to-RAM,CONFIRMED
+TBD,TBD,TBD,Input,ACPI S4 Sleep State,Low (active low),TBD,AMD x86 host CPU,32 and 34,Signal: SUS_S4_L; host entering S4 hibernate,CONFIRMED
+TBD,TBD,TBD,Input,ACPI S5 Sleep State,Low (active low),TBD,AMD x86 host CPU,32 and 34,Signal: SUS_S5_L; host entering S5 soft-off,CONFIRMED
+TBD,TBD,TBD,Input,Platform Power OK,High (active high),TBD,Power sequencer / VRs,4 and 32 and 34,Signal: PWR_OK; high = all power rails stable,CONFIRMED
+TBD,TBD,TBD,Output,CPU / Carrier Board Reset,Low (active low),TBD,CPU and carrier board reset circuit,4 and 32 and 34 and 94,Signal: CPU_MB_CB_RST_L; BMC-initiated platform reset,CONFIRMED
+TBD,TBD,TBD,Output,Resume Reset,Low (active low),TBD,Platform resume reset circuit,34 and 103,Signal: RSMRST_OUT_L; resume from standby reset,CONFIRMED
+TBD,TBD,TBD,Input,Host Watchdog Timer,High (active high),TBD,AMD x86 host CPU WDT output,32 and 34,Signal: CPU_MB_WDT; host watchdog timeout indicator,CONFIRMED
+TBD,TBD,TBD,Input,Host Thermal Trip,Low (active low),TBD,AMD x86 host CPU thermal output,34,Signal: MB_CPU_THRM_L; host CPU thermal emergency,CONFIRMED
+TBD,TBD,TBD,Output,Intel I210 NIC Reset,Low (active low),TBD,Intel I210 OOB NIC,4 and 55,Signal: I210_RST_L; BMC-controlled NIC reset,CONFIRMED

@@ -1,0 +1,30 @@
+Bus,Address,IC_PartNumber,Reference_Designator,Device_Type,Purpose,Datasheet,EntityManager_Type,Notes,Status
+0,0x50,AT24C128,TBD,EEPROM,SCM FRU EEPROM (VPD / asset data),TBD,EEPROM,I2C_3V3_0 - SCM local bus; 128Kbit; pagesize=64,CONFIRMED
+4,0x74,PCA9539,U27,GPIO_Expander,BIOS Updates GPIO Expander,TBD,PCA9539,I2C_3V3_4 - BIOS update control,CONFIRMED
+5,0x34,UCD90120A,TBD,Power_Sequencer,Power sequencer / monitor,TBD,UCD90120A,I2C_3V3_5 - Main sensor bus,CONFIRMED
+5,0x4D,TMP435,TBD,Temperature,Dual-channel temp sensor (local + CPU remote junction),TBD,TMP435,I2C_3V3_5; alert: MAC_TEMP_ALERT_L,CONFIRMED
+5,0x48,TMP75,TBD,Temperature,Ambient Thermal Sensor For AFO,TBD,TMP75,I2C_3V3_5; sensor #0,CONFIRMED
+5,0x49,TMP75,TBD,Temperature,Hot Spot Thermal Sensor,TBD,TMP75,I2C_3V3_5; sensor #1,CONFIRMED
+5,0x4A,TMP75,TBD,Temperature,Hot Spot Thermal Sensor For AFI,TBD,TMP75,I2C_3V3_5; sensor #2,CONFIRMED
+5,0x4B,TMP75,TBD,Temperature,Thermal Sensor For OP2,TBD,TMP75,I2C_3V3_5; sensor #3,CONFIRMED
+5,0x72,PCA9548,U16,I2C_Mux,Fan Extension Board I2C Mux (8-channel),TBD,PCA9548,I2C_3V3_5; reset: 9548#16_RST_L; see muxed devices below,CONFIRMED
+5,0x71,PCA9548,U15,I2C_Mux,PSU / Voltage Regulator I2C Mux (8-channel),TBD,PCA9548,I2C_3V3_5; see muxed devices below,CONFIRMED
+5 (via PCA9548#16 CH0),0x50,EEPROM,TBD,EEPROM,Fan Module 0 EEPROM,TBD,EEPROM,Behind mux 0x72 channel 0,CONFIRMED
+5 (via PCA9548#16 CH1),0x50,EEPROM,TBD,EEPROM,Fan Module 1 EEPROM,TBD,EEPROM,Behind mux 0x72 channel 1,CONFIRMED
+5 (via PCA9548#16 CH2),0x50,EEPROM,TBD,EEPROM,Fan Module 2 EEPROM,TBD,EEPROM,Behind mux 0x72 channel 2,CONFIRMED
+5 (via PCA9548#16 CH3),0x50,EEPROM,TBD,EEPROM,Fan Module 3 EEPROM,TBD,EEPROM,Behind mux 0x72 channel 3,CONFIRMED
+5 (via PCA9548#16 CH4),0x57,EEPROM,TBD,EEPROM,Fan Extension Board EEPROM,TBD,EEPROM,Behind mux 0x72 channel 4,CONFIRMED
+5 (via PCA9548#15 CH0),0x58,PSU,TBD,PSU,PSU0 PMBus Control,TBD,pmbus,Behind mux 0x71 channel 0; via ISO level shifter,CONFIRMED
+5 (via PCA9548#15 CH0),0x50,EEPROM,TBD,EEPROM,PSU0 EEPROM,TBD,EEPROM,Behind mux 0x71 channel 0; PSU0 board,CONFIRMED
+5 (via PCA9548#15 CH0),0x52,EEPROM,TBD,EEPROM,PSU0 EEPROM #2,TBD,EEPROM,Behind mux 0x71 channel 0; PSU0 board,CONFIRMED
+5 (via PCA9548#15 CH1),0x58,PSU,TBD,PSU,PSU1 PMBus Control,TBD,pmbus,Behind mux 0x71 channel 1; via ISO level shifter,CONFIRMED
+5 (via PCA9548#15 CH1),0x50,EEPROM,TBD,EEPROM,PSU1 EEPROM,TBD,EEPROM,Behind mux 0x71 channel 1; PSU1 board,CONFIRMED
+5 (via PCA9548#15 CH1),0x52,EEPROM,TBD,EEPROM,PSU1 EEPROM #2,TBD,EEPROM,Behind mux 0x71 channel 1; PSU1 board,CONFIRMED
+5 (via PCA9548#15 CH3),0x76,XDPE1A2G5BV,TBD,Voltage_Regulator,DC-DC Converter (VR telemetry),TBD,pmbus,Behind mux 0x71 channel 3,CONFIRMED
+5 (via PCA9548#15 CH3),0x45,TDA38740A,TBD,Voltage_Regulator,DC-DC Converter (VR telemetry),TBD,pmbus,Behind mux 0x71 channel 3,CONFIRMED
+5 (via PCA9548#15 CH3),0x1D,TPS549A20,TBD,Voltage_Regulator,DC-DC Converter (VR telemetry),TBD,pmbus,Behind mux 0x71 channel 3,CONFIRMED
+5 (via PCA9548#15 CH3),0x60,XDPE19284C,TBD,Voltage_Regulator,DC-DC Converter (VR telemetry),TBD,pmbus,Behind mux 0x71 channel 3,CONFIRMED
+5 (via PCA9548#15 CH4),0x47,BRCM_MAC,TBD,Other,BRCM MAC Interface,TBD,TBD,Behind mux 0x71 channel 4; via 3.3V-to-1.8V VT,CONFIRMED
+5 (via PCA9548#15 CH5+),TBD,TPS549B22,TBD,Voltage_Regulator,OP2 BCM16K VR,TBD,pmbus,Behind mux 0x71 channel 5+; addresses partially confirmed,TBD
+5 (via PCA9548#15 CH5+),TBD,TPS549A20,TBD,Voltage_Regulator,OP2 BCM16K VR,TBD,pmbus,Behind mux 0x71 channel 5+; addresses partially confirmed,TBD
+5 (via PCA9548#15 CH5+),TBD,XDPE19284C,TBD,Voltage_Regulator,OP2 BCM16K VR,TBD,pmbus,Behind mux 0x71 channel 5+; addresses partially confirmed,TBD

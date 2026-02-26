@@ -1,52 +1,49 @@
 {
     "_comment": [
-        "Q2C Fan Architecture (confirmed from block diagram):",
-        "  - The AST2600 BMC is on the SCM (System Control Module) board.",
-        "  - 4 fan connectors on the carrier board: Fan0..Fan3.",
-        "  - Fans are NOT driven directly by AST2600 PWM hardware.",
-        "  - A Fan Expander Board (schematic pg 59) is controlled via I2C",
-        "    (SDA_FAN_EXP / SCL_FAN_EXP) from the SCM board.",
-        "  - Fan expander chip model and I2C address: see SCM board schematic.",
-        "  - writePath values below are PLACEHOLDERS — update after driver bringup.",
-        "Temperature sensors used as PID inputs:",
-        "  - Inlet_Temp / Outlet_Temp: LM75 sensors on SCM board (block diagram)",
-        "  - Board_Temp_0: carrier board LM75#0 (schematic LM75#0_TEMP_ALERT_L pg 34)",
-        "  - Board_Temp_1: carrier board LM75#1",
-        "  - Board_Temp_2: carrier board LM75#2"
+        "Q2C Fan PID Control Configuration",
+        "Temperature sensors (all on I2C bus 5 = I2C_3V3_5):",
+        "  - Ambient_Temp_AFO: TMP75#0 at 0x48 (ambient thermal for AFO)",
+        "  - HotSpot_Temp:     TMP75#1 at 0x49 (hot spot thermal)",
+        "  - HotSpot_Temp_AFI: TMP75#2 at 0x4A (hot spot thermal for AFI)",
+        "  - OP2_Temp:         TMP75#3 at 0x4B (thermal for OP2)",
+        "  - CPU_Remote_Temp:  TMP435  at 0x4D (dual-channel, local + CPU remote)",
+        "Fan control mechanism: TBD (no dedicated fan controller IC found;",
+        "  possibly CPLD/PLD, GPIO PWM, or fan module built-in controllers).",
+        "Fan writePath values are PLACEHOLDERS — update after driver bringup."
     ],
     "sensors": [
         {
-            "name": "Inlet_Temp",
+            "name": "Ambient_Temp_AFO",
             "type": "temp",
-            "readPath": "/xyz/openbmc_project/sensors/temperature/Inlet_Temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Ambient_Temp_AFO",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
         {
-            "name": "Outlet_Temp",
+            "name": "HotSpot_Temp",
             "type": "temp",
-            "readPath": "/xyz/openbmc_project/sensors/temperature/Outlet_Temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/HotSpot_Temp",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
         {
-            "name": "Board_Temp_0",
+            "name": "HotSpot_Temp_AFI",
             "type": "temp",
-            "readPath": "/xyz/openbmc_project/sensors/temperature/Board_Temp_0",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/HotSpot_Temp_AFI",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
         {
-            "name": "Board_Temp_1",
+            "name": "OP2_Temp",
             "type": "temp",
-            "readPath": "/xyz/openbmc_project/sensors/temperature/Board_Temp_1",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/OP2_Temp",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
         {
-            "name": "Board_Temp_2",
+            "name": "CPU_Remote_Temp",
             "type": "temp",
-            "readPath": "/xyz/openbmc_project/sensors/temperature/Board_Temp_2",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/CPU_Remote_Temp",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
@@ -54,7 +51,7 @@
             "name": "Fan0",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan0",
-            "writePath": "/sys/class/hwmon/hwmon0/pwm1",
+            "writePath": "/TBD/fan_control_path_0",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
@@ -62,7 +59,7 @@
             "name": "Fan1",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan1",
-            "writePath": "/sys/class/hwmon/hwmon0/pwm2",
+            "writePath": "/TBD/fan_control_path_1",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
@@ -70,7 +67,7 @@
             "name": "Fan2",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan2",
-            "writePath": "/sys/class/hwmon/hwmon0/pwm3",
+            "writePath": "/TBD/fan_control_path_2",
             "timeout": 0,
             "ignoreDbusMinMax": true
         },
@@ -78,7 +75,7 @@
             "name": "Fan3",
             "type": "fan",
             "readPath": "/xyz/openbmc_project/sensors/fan_tach/Fan3",
-            "writePath": "/sys/class/hwmon/hwmon0/pwm4",
+            "writePath": "/TBD/fan_control_path_3",
             "timeout": 0,
             "ignoreDbusMinMax": true
         }
@@ -90,9 +87,9 @@
             "failsafePercent": 75.0,
             "pids": [
                 {
-                    "name": "inlet_temp_pid",
+                    "name": "ambient_temp_afo_pid",
                     "type": "temp",
-                    "inputs": ["Inlet_Temp"],
+                    "inputs": ["Ambient_Temp_AFO"],
                     "setpoint": 38.0,
                     "pid": {
                         "samplePeriod": 1.0,
@@ -109,9 +106,9 @@
                     }
                 },
                 {
-                    "name": "board_temp_0_pid",
+                    "name": "hotspot_temp_pid",
                     "type": "temp",
-                    "inputs": ["Board_Temp_0"],
+                    "inputs": ["HotSpot_Temp"],
                     "setpoint": 55.0,
                     "pid": {
                         "samplePeriod": 1.0,
@@ -128,10 +125,48 @@
                     }
                 },
                 {
-                    "name": "outlet_temp_pid",
+                    "name": "hotspot_temp_afi_pid",
                     "type": "temp",
-                    "inputs": ["Outlet_Temp"],
-                    "setpoint": 65.0,
+                    "inputs": ["HotSpot_Temp_AFI"],
+                    "setpoint": 55.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.0,
+                        "integralCoeff": 0.5,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": 30.0,
+                        "iLimitMax": 100.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "op2_temp_pid",
+                    "type": "temp",
+                    "inputs": ["OP2_Temp"],
+                    "setpoint": 60.0,
+                    "pid": {
+                        "samplePeriod": 1.0,
+                        "proportionalCoeff": 0.0,
+                        "integralCoeff": 0.5,
+                        "ffGainCoeff": 0.0,
+                        "ffOffCoeff": 0.0,
+                        "iLimitMin": 30.0,
+                        "iLimitMax": 100.0,
+                        "outLimitMin": 30.0,
+                        "outLimitMax": 100.0,
+                        "slewNeg": 0.0,
+                        "slewPos": 0.0
+                    }
+                },
+                {
+                    "name": "cpu_temp_pid",
+                    "type": "temp",
+                    "inputs": ["CPU_Remote_Temp"],
+                    "setpoint": 70.0,
                     "pid": {
                         "samplePeriod": 1.0,
                         "proportionalCoeff": 0.0,
