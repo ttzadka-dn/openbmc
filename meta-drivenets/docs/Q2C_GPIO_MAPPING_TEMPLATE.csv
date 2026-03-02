@@ -1,19 +1,100 @@
-GPIO_Pin,Bank,Bit,Direction,Purpose,Active_Level,Device_Tree_Macro,Connected_To,Schematic_Page,Notes,Status
-TBD,TBD,TBD,Input,PSU0 Presence Detect,Low (active low),TBD,PSU0 hot-swap connector,TBD,Signal: PSU0_PRESENT_ST_L; low = PSU0 installed,CONFIRMED
-TBD,TBD,TBD,Input,PSU1 Presence Detect,Low (active low),TBD,PSU1 hot-swap connector,TBD,Signal: PSU1_PRESENT_ST_L; low = PSU1 installed,CONFIRMED
-TBD,TBD,TBD,Input,PSU0 AC Input OK,High (active high),TBD,PSU0 AC-OK output,TBD,Signal: PSU0_ACOK; high = AC input within spec,CONFIRMED
-TBD,TBD,TBD,Input,PSU1 AC Input OK,High (active high),TBD,PSU1 AC-OK output,TBD,Signal: PSU1_ACOK; high = AC input within spec,CONFIRMED
-TBD,TBD,TBD,Input,PSU0 DC Power Good,High (active high),TBD,PSU0 power-good output,TBD,Signal: PSU0_PWOK_H; high = DC output OK,CONFIRMED
-TBD,TBD,TBD,Input,PSU1 DC Power Good,High (active high),TBD,PSU1 power-good output,TBD,Signal: PSU1_PWOK_H; high = DC output OK,CONFIRMED
-TBD,TBD,TBD,Output,PSU0 Power On Control,Low (active low),TBD,PSU0 PS_ON input,TBD,Signal: PSU0_PSON_L; assert low to enable PSU0,CONFIRMED
-TBD,TBD,TBD,Output,PSU1 Power On Control,Low (active low),TBD,PSU1 PS_ON input,TBD,Signal: PSU1_PSON_L; assert low to enable PSU1,CONFIRMED
-TBD,TBD,TBD,Input,Reset Button,Low (active low),TBD,Front panel reset button,32 and 34,Signal: PUSH_BTN_RST_L; active-low momentary,CONFIRMED
-TBD,TBD,TBD,Input,ACPI S3 Sleep State,Low (active low),TBD,AMD x86 host CPU,32 and 34,Signal: SUS_S3_L; host entering S3 suspend-to-RAM,CONFIRMED
-TBD,TBD,TBD,Input,ACPI S4 Sleep State,Low (active low),TBD,AMD x86 host CPU,32 and 34,Signal: SUS_S4_L; host entering S4 hibernate,CONFIRMED
-TBD,TBD,TBD,Input,ACPI S5 Sleep State,Low (active low),TBD,AMD x86 host CPU,32 and 34,Signal: SUS_S5_L; host entering S5 soft-off,CONFIRMED
-TBD,TBD,TBD,Input,Platform Power OK,High (active high),TBD,Power sequencer / VRs,4 and 32 and 34,Signal: PWR_OK; high = all power rails stable,CONFIRMED
-TBD,TBD,TBD,Output,CPU / Carrier Board Reset,Low (active low),TBD,CPU and carrier board reset circuit,4 and 32 and 34 and 94,Signal: CPU_MB_CB_RST_L; BMC-initiated platform reset,CONFIRMED
-TBD,TBD,TBD,Output,Resume Reset,Low (active low),TBD,Platform resume reset circuit,34 and 103,Signal: RSMRST_OUT_L; resume from standby reset,CONFIRMED
-TBD,TBD,TBD,Input,Host Watchdog Timer,High (active high),TBD,AMD x86 host CPU WDT output,32 and 34,Signal: CPU_MB_WDT; host watchdog timeout indicator,CONFIRMED
-TBD,TBD,TBD,Input,Host Thermal Trip,Low (active low),TBD,AMD x86 host CPU thermal output,34,Signal: MB_CPU_THRM_L; host CPU thermal emergency,CONFIRMED
-TBD,TBD,TBD,Output,Intel I210 NIC Reset,Low (active low),TBD,Intel I210 OOB NIC,4 and 55,Signal: I210_RST_L; BMC-controlled NIC reset,CONFIRMED
+GPIO_Pin,Bank,Bit,Direction,Purpose,Active_Level,Signal_Name,Connected_To,AST2620_Ball,Schematic_Page,Notes,Status
+GPIOB0,B,0,Input,HPM Standby Ready,High (active high),HPM_BMC_STBY_RDY,HPM FPGA,J26,9 and 11 and 30,SALT1 mode; via R62 0ohm; BMC monitors HPM readiness,CONFIRMED
+GPIOB1,B,1,TBD,TBD,TBD,TBD,TBD,K23,9 and 11 and 30,SALT2 mode; signal name TBD from schematic,TBD
+GPIOH0,H,0,Output,SGPIO Master 1 Clock,N/A,SGPIOM1_BMC_PLD_CLK,SCM PLD,A18,SGPIO page,SGPIOM1 interface to SCM PLD for panel LEDs,CONFIRMED
+GPIOH1,H,1,Output,SGPIO Master 1 Load,N/A,SGPIOM1_BMC_PLD_LD,SCM PLD,B18,SGPIO page,SGPIOM1 interface to SCM PLD,CONFIRMED
+GPIOH2,H,2,Output,SGPIO Master 1 Data Out,N/A,SGPIOM1_BMC_PLD_DO,SCM PLD,C18,SGPIO page,SGPIOM1 interface to SCM PLD,CONFIRMED
+GPIOH3,H,3,Input,SGPIO Master 1 Data In,N/A,SGPIOM1_PLD_BMC_DI,SCM PLD,A17,SGPIO page,SGPIOM1 interface to SCM PLD,CONFIRMED
+GPIOH4,H,4,Output,I2C15 SCL (local DC-SCM bus),N/A,I2C_BMC_R_SCL15,Local DC-SCM devices (TEMP/FRU/RTC/PMIC/PLD),D18,I2C/SGPIO page,Muxed with SGPS1CK; BMC_I2C15 controller,CONFIRMED
+GPIOH5,H,5,Bidir,I2C15 SDA (local DC-SCM bus),N/A,I2C_BMC_R_SDA15,Local DC-SCM devices (TEMP/FRU/RTC/PMIC/PLD),B17,I2C/SGPIO page,Muxed with SGPS1LD; BMC_I2C15 controller,CONFIRMED
+GPIOH6,H,6,Output,I2C16 SCL (PFR bus),N/A,I2C_BMC_PFR_SCL16_R,PROT_AST1060 PFR chip,C17,I2C/SGPIO page,Muxed with SGPS1I0; BMC_I2C16 controller,CONFIRMED
+GPIOH7,H,7,Bidir,I2C16 SDA (PFR bus),N/A,I2C_BMC_PFR_SDA16_R,PROT_AST1060 PFR chip,E18,I2C/SGPIO page,Muxed with SGPS1I1; BMC_I2C16 controller,CONFIRMED
+GPIOO0,O,0,Input,PLD status → BMC (TACH0 function),High,PLD_BMC_GPIOQ0,SCM PLD,AA25,16 GPIO (right) and 27,PLD relays platform status via this pin; signal meaning on pg 27,CONFIRMED
+GPIOO1,O,1,Input,PLD status → BMC (TACH1 function),High,PLD_BMC_GPIOQ3,SCM PLD,AB25,16 GPIO (right) and 31,PLD status relay; signal meaning on pg 31,CONFIRMED
+GPIOO2,O,2,Input,PLD status → BMC (TACH2 function),High,PLD_BMC_GPIOQ5,SCM PLD,AB26,16 GPIO (right) and 31,PLD status relay; signal meaning on pg 31,CONFIRMED
+GPIOO3,O,3,Input,PLD status → BMC (TACH3 function),High,PLD_BMC_GPIOQ6,SCM PLD,Y26,16 GPIO (right) and 31,PLD status relay; signal meaning on pg 31,CONFIRMED
+GPIOO4,O,4,Input,PLD status → BMC (TACH4 function),High,PLD_BMC_GPIOQ7,SCM PLD,AC26,16 GPIO (right) and 28,PLD status relay; signal meaning on pg 28,CONFIRMED
+GPIOO5,O,5,Input,PLD status → BMC (TACH5 function),TBD,PLD_BMC_GPIOQ_TBD5,SCM PLD,Y25,16 GPIO (right) and 28,PLD status relay; signal name TBD from pg 28,TBD
+GPIOO6,O,6,Input,PLD status → BMC (TACH6 function),TBD,PLD_BMC_GPIOQ_TBD6,SCM PLD,AA26,16 GPIO (right) and 28,PLD status relay; signal name TBD from pg 28,TBD
+GPIOO7,O,7,Input,PLD status → BMC (TACH7 function),TBD,PLD_BMC_GPIOQ_TBD7,SCM PLD,U24,16 GPIO (right) and 28,PLD status relay; signal name TBD from pg 28,TBD
+GPIOP0,P,0,Output,BMC → PLD control (PWM8/THRUIN0),High,BMC_PLD_GPIO_P0,SCM PLD,W24,16 GPIO (right) and 27,BMC control output to PLD; signal meaning on pg 27,CONFIRMED
+GPIOP1,P,1,Output,BMC → PLD control (PWM9/THROUT0),High,BMC_PLD_GPIO_P1,SCM PLD,AA23,16 GPIO (right) and 27,BMC control output to PLD,CONFIRMED
+GPIOP2,P,2,Output,BMC → PLD control (PWM10/THRUIN1),TBD,BMC_PLD_GPIO_P2,SCM PLD,AA24,16 GPIO (right) and 27,BMC control output to PLD,CONFIRMED
+GPIOP3,P,3,Output,BMC → PLD control (PWM11/THROUT1),TBD,BMC_PLD_GPIO_P3,SCM PLD,AA22,16 GPIO (right) and 27,BMC control output to PLD,CONFIRMED
+GPIOP4,P,4,Output,BMC → PLD control (PWM12/THRUIN2),TBD,BMC_PLD_GPIO_P4,SCM PLD,AB24,16 GPIO (right) and 27,BMC control output to PLD,CONFIRMED
+GPIOP5,P,5,Output,BMC → PLD control (PWM13/THROUT2),TBD,BMC_PLD_GPIO_P5,SCM PLD,AB23,16 GPIO (right) and 27,BMC control output to PLD,CONFIRMED
+GPIOP6,P,6,Output,BMC → PLD control (PWM14),TBD,BMC_PLD_GPIO_P6,SCM PLD,AB22,16 GPIO (right) and 27,BMC control output to PLD,CONFIRMED
+GPIOP7,P,7,Output,BMC Heartbeat LED,Active low,FM_BMC_HEARTBEAT_N,SCM PLD / Panel LED,Y23,16 GPIO (right),HBLED#/PWM15 function; heartbeat output from BMC,CONFIRMED
+GPIOR0,R,0,Input,PLD status → BMC (TACH8 function),High,PLD_BMC_GPIOR0,SCM PLD,V24,16 GPIO (right) and 27,PLD status relay; signal meaning on pg 27,CONFIRMED
+GPIOR1,R,1,Input,PLD status → BMC (TACH9 function),High,PLD_BMC_GPIOR1,SCM PLD,V26,16 GPIO (right) and 27,PLD status relay; signal meaning on pg 27,CONFIRMED
+GPIOR2,R,2,Input,PLD status → BMC (TACH10 function),High,PLD_BMC_GPIOR2,SCM PLD,TBD,16 GPIO (right) and 27,PLD status relay; ball TBD,CONFIRMED
+GPIOR6,R,6,Input,Platform Thermal Trip,Low (active low),FM_THERMTRIP_N,CPU / carrier board thermal circuit,W26,16 GPIO (right) and 31,Via R86 1ohm series; direct connection (not via PLD),CONFIRMED
+GPIOW0,W,0,Bidir,LPC LAD0,N/A,ESPI_HPMCTRL_IO_0,ESPI-to-LPC bridge chip,AB7,LPC/ESPI page,LPC data bit 0 from AMD CPU via eSPI-to-LPC bridge chip,CONFIRMED
+GPIOW1,W,1,Bidir,LPC LAD1,N/A,ESPI_HPMCTRL_IO_1,ESPI-to-LPC bridge chip,AB5,LPC/ESPI page,LPC data bit 1,CONFIRMED
+GPIOW2,W,2,Bidir,LPC LAD2,N/A,ESPI_HPMCTRL_IO_2,ESPI-to-LPC bridge chip,AD5,LPC/ESPI page,LPC data bit 2,CONFIRMED
+GPIOW3,W,3,Bidir,LPC LAD3,N/A,ESPI_HPMCTRL_IO_3,ESPI-to-LPC bridge chip,AE5,LPC/ESPI page,LPC data bit 3,CONFIRMED
+GPIOW4,W,4,Input,LPC Clock,N/A,ESPI_BMC_CLK,ESPI-to-LPC bridge chip,AE7,LPC/ESPI page,LCLK driven by bridge; via R114 33ohm,CONFIRMED
+GPIOW7,W,7,Input,LPC Reset,Low (active low),ESPI_BMC_RESET,ESPI-to-LPC bridge chip,AF6,LPC/ESPI page,LRESET from bridge; via R478 33ohm,CONFIRMED
+GPIOS2,S,2,N/A,PCIe Wake (internal),N/A,AST2600_PEWAKE#,AST2620 PCIe internal,T26,16 GPIO page,Internal AST2620 signal; no carrier board connection,CONFIRMED
+GPIOS3,S,3,N/A,Oscillator Clock (internal),N/A,OSCCLK,AST2620 internal oscillator,R24,16 GPIO page,Internal AST2620 signal,CONFIRMED
+ADC0,ADC,,Input,12V Rail Voltage Sense,N/A,VCC_12V_SENSE,Voltage divider on 12V rail,AD20,16 GPIO (right) and 32,GPIT0 function; monitored via adc0 hwmon driver,CONFIRMED
+ADC1,ADC,,Input,3.3V Rail Voltage Sense,N/A,VCC_3V3_SENSE,Voltage divider on 3.3V rail,AC18,16 GPIO (right) and 32,GPIT1 function,CONFIRMED
+ADC2,ADC,,Input,2.5V Rail Voltage Sense,N/A,VCC_2V5_SENSE,Voltage divider on 2.5V rail,AE19,16 GPIO (right) and 32,GPIT2 function,CONFIRMED
+ADC3,ADC,,Input,DDR VDDQ Rail Voltage Sense,N/A,VCC_DDRVDDQ_SENSE,DDR VDDQ voltage divider,AD19,16 GPIO (right) and 32,GPIT3 function,CONFIRMED
+ADC4,ADC,,Input,1.0V Rail Voltage Sense,N/A,VCC_1V0_SENSE,1.0V voltage divider,AC19,16 GPIO (right) and 32,GPIT4 function,CONFIRMED
+ADC5,ADC,,Input,DDR VTT Rail Voltage Sense,N/A,VCC_DDRVTT_SENSE,DDR VTT voltage divider,AB19,16 GPIO (right) and 32,GPIT5 function,CONFIRMED
+ADC6,ADC,,Input,3V Battery Voltage Sense,N/A,A_P3V_BAT_SCALED,RTC/CMOS battery,AB18,16 GPIO (right) and 32,GPIT6 function; scaled voltage,CONFIRMED
+ADC7,ADC,,Input,3.3V RGM Rail Voltage Sense,N/A,VCC_3V3_RGM_SENSE,3.3V RGM voltage divider,AA17,16 GPIO (right) and 32,GPIT7 function,CONFIRMED
+ADC8,ADC,,Input,HPM FRU 3.3V Sense,N/A,VCC_SCM_HPM_FRU_3V3_SENSE,HPM FRU 3.3V supply,AE17,16 GPIO (right) and 32,GPIU0/SALT9 function,CONFIRMED
+ADC9,ADC,,Input,LS CH1 3.3V Sense,N/A,VCC_LS_CH1_3V3_SENSE,Level-shifter CH1 3.3V,AE16,16 GPIO (right) and 32,GPIU1/SALT10 function,CONFIRMED
+ADC10,ADC,,Input,LS CH2 1.8V Sense,N/A,VCC_LS_CH2_1V8_SENSE,Level-shifter CH2 1.8V,AD16,16 GPIO (right) and 32,GPIU2/SALT11 function,CONFIRMED
+ADC11,ADC,,Input,PECI VDD Voltage Sense,N/A,PECI_VDD_SENSE,PECI interface supply,AC16,16 GPIO (right) and 32,GPIU3/SALT12 function,CONFIRMED
+CHASI#,DEDICATED,,Input,Chassis Intrusion Detect,Low (active low),FM_INTRUDER_BMC_R_N,Chassis intrusion switch,AB21,16 GPIO (right) and 9,Dedicated CHASI# input pin (not gpio-line-names); via R414 2ohm,CONFIRMED
+MTRST1,JTAG,,Input,JTAG Master-1 Reset,Low (active low),JTAG_BMC_TRST1_N,HPM / debug JTAG chain,F11,16 GPIO (right) and 27,JTAG Slave/Master-1 TRST input,CONFIRMED
+MTCK1,JTAG,,Bidir,JTAG Master-1 TCK,N/A,JTAG_BMC_MTCK1,HPM / debug JTAG chain,B9,16 GPIO (right) and 27,Via R304 22.5ohm; JTAG clock,CONFIRMED
+MTMS1,JTAG,,Bidir,JTAG Master-1 TMS,N/A,JTAG_BMC_MTMS2,HPM / debug JTAG chain,A9,16 GPIO (right) and 27,Via R6 22.5ohm,CONFIRMED
+MTDI1,JTAG,,Bidir,JTAG Master-1 TDI,N/A,JTAG_BMC_MTDI1,HPM / debug JTAG chain,D9,16 GPIO (right) and 27,Via R332 22.5ohm,CONFIRMED
+MTDO1,JTAG,,Output,JTAG Master-1 TDO,N/A,JTAG_BMC_MTDO1,HPM / debug JTAG chain,C9,16 GPIO (right) and 27,Via R38 22.5ohm,CONFIRMED
+GPIOI4/MTDO2,I,4,Output,JTAG Master-2 TDO,N/A,JTAG_HPM_SCM_TDO,HPM JTAG chain,C16,16 GPIO (right) and 9,Via R325 0ohm passthrough,CONFIRMED
+TBD,TBD,TBD,Output,BMC Ready Indicator,High (active high),FM_BMC_READY_N,SCM PLD [pg 27],TBD,16 GPIO (right) and 27,BMC asserts this when ready; output to PLD; ball TBD,CONFIRMED - ball TBD
+TBD,TBD,TBD,Input,12V Aux Power Good,High (active high),PWRGD_P12V_AUX1,Power sequencer,TBD,16 GPIO (right) and 30,12V auxiliary power good signal; ball TBD,CONFIRMED - ball TBD
+TBD,TBD,TBD,Input,SMI Interrupt to BMC,Low (active low),IRQ_BMC_SMI_N,SCM PLD U2F → BMC,TBD (~U26),16 GPIO (right) and 31,PLD drives SMI to BMC; via R407 4.7K pull-up; ball approx U26,CONFIRMED - ball TBD
+TBD,TBD,TBD,Input,PCIe HPM/SCM PLD PCIe Reset,Low (active low),PCIE_HPM_SCM_PLD_PERST_N,HPM / SCM PLD,TBD (GPIOO PWM side),16 GPIO (right) and 27,PCIe reset from HPM/PLD to BMC; input on GPIOO PWM-function pin,CONFIRMED - ball TBD
+TBD,TBD,TBD,Input,PSU0 Presence Detect,Low (active low),PSU0_PRESENT_ST_L,SCM PLD → BMC via GPIOO,N/A - via PLD,27 and 28 and 31,Signal routed through SCM PLD; arrives on a PLD_BMC_GPIOQ* GPIOO pin,VIA PLD - GPIOQ pin TBD
+TBD,TBD,TBD,Input,PSU1 Presence Detect,Low (active low),PSU1_PRESENT_ST_L,SCM PLD → BMC via GPIOO,N/A - via PLD,27 and 28 and 31,Signal routed through SCM PLD; arrives on a PLD_BMC_GPIOQ* GPIOO pin,VIA PLD - GPIOQ pin TBD
+TBD,TBD,TBD,Input,PSU0 AC Input OK,High (active high),PSU0_ACOK,SCM PLD → BMC via GPIOO,N/A - via PLD,27 and 28 and 31,Signal routed through SCM PLD,VIA PLD - GPIOQ pin TBD
+TBD,TBD,TBD,Input,PSU1 AC Input OK,High (active high),PSU1_ACOK,SCM PLD → BMC via GPIOO,N/A - via PLD,27 and 28 and 31,Signal routed through SCM PLD,VIA PLD - GPIOQ pin TBD
+TBD,TBD,TBD,Input,PSU0 DC Power Good,High (active high),PSU0_PWOK_H,SCM PLD → BMC via GPIOO,N/A - via PLD,27 and 28 and 31,Signal routed through SCM PLD,VIA PLD - GPIOQ pin TBD
+TBD,TBD,TBD,Input,PSU1 DC Power Good,High (active high),PSU1_PWOK_H,SCM PLD → BMC via GPIOO,N/A - via PLD,27 and 28 and 31,Signal routed through SCM PLD,VIA PLD - GPIOQ pin TBD
+TBD,TBD,TBD,Output,PSU0 Power On Control,Low (active low),PSU0_PSON_L,SCM PLD → PSU via GPIOP,N/A - via PLD,27 and 28,BMC writes a BMC_PLD_GPIO* output; PLD drives PS_ON,VIA PLD - GPIOP pin TBD
+TBD,TBD,TBD,Output,PSU1 Power On Control,Low (active low),PSU1_PSON_L,SCM PLD → PSU via GPIOP,N/A - via PLD,27 and 28,BMC writes a BMC_PLD_GPIO* output; PLD drives PS_ON,VIA PLD - GPIOP pin TBD
+TBD,TBD,TBD,Input,Reset Button,Low (active low),PUSH_BTN_RST_L,SCM PLD → BMC or direct,TBD,32 and 34,May arrive via PLD or direct GPIO; bank/bit TBD,TBD
+TBD,TBD,TBD,Input,ACPI S3 Sleep State,Low (active low),SUS_S3_L,AMD x86 host CPU → PLD → BMC,TBD,32 and 34,Host ACPI state; may arrive via PLD; bank/bit TBD,TBD
+TBD,TBD,TBD,Input,ACPI S4 Sleep State,Low (active low),SUS_S4_L,AMD x86 host CPU → PLD → BMC,TBD,32 and 34,Host ACPI state; may arrive via PLD; bank/bit TBD,TBD
+TBD,TBD,TBD,Input,ACPI S5 Sleep State,Low (active low),SUS_S5_L,AMD x86 host CPU → PLD → BMC,TBD,32 and 34,Host ACPI state; may arrive via PLD; bank/bit TBD,TBD
+TBD,TBD,TBD,Input,Platform Power OK,High (active high),PWR_OK,Power sequencer → PLD → BMC,TBD,4 and 32 and 34,Platform power OK; may arrive via PLD; bank/bit TBD,TBD
+TBD,TBD,TBD,Output,CPU / Carrier Board Reset,Low (active low),CPU_MB_CB_RST_L,PLD → CPU and carrier board,TBD,4 and 32 and 34 and 94,BMC writes BMC_PLD_GPIO* → PLD drives reset; bank/bit TBD,TBD
+TBD,TBD,TBD,Output,Resume Reset,Low (active low),RSMRST_OUT_L,PLD → platform,TBD,34 and 103,Via PLD or direct; bank/bit TBD,TBD
+TBD,TBD,TBD,Input,Host Watchdog Timer,High (active high),CPU_MB_WDT,AMD x86 host CPU,TBD,32 and 34,Host WDT timeout; bank/bit TBD,TBD
+TBD,TBD,TBD,Output,Intel I210 NIC Reset,Low (active low),I210_RST_L,Intel I210 OOB NIC,TBD,4 and 55,BMC-controlled NIC reset; bank/bit TBD,CONFIRMED - bank/bit TBD
+TBD,TBD,TBD,Input,HPM SCM IRQ0,Low (active low),SPI_HPM_SCM_IRQ0_N,HPM FPGA,TBD,9,Interrupt from HPM to BMC; bank/bit TBD,CONFIRMED - bank/bit TBD
+TBD,TBD,TBD,Input,RPM Reset Indicator,Low (active low),RPM_RSTIND_N,Fan RPM controller,TBD,12 and 26 and 34,Fan RPM reset indicator; bank/bit TBD,CONFIRMED - bank/bit TBD
+TBD,TBD,TBD,Input,NMI Event to BMC,Low (active low),IRQ_NMI_EVENT_N,SCM PLD U2B → BMC,TBD,PLD U2B pg [21],PLD relays NMI event from CPU to BMC; output from PLD U2B [pg 21],CONFIRMED - ball TBD
+TBD,TBD,TBD,Input,CPU0 Power Good (via PFR/PLD),High (active high),PWRGD_AUX_PWRGD_PFR_CPU0,PFR → SCM PLD → BMC,TBD,PLD U2B pg [12 and 21],CPU0 12V aux power good via PFR; R382 10K pull-down; PLD relay to BMC [pg 12 and 21],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,CPU1 Power Good (via PFR/PLD),High (active high),PWRGD_AUX_PWRGD_PFR_CPU1,PFR → SCM PLD → BMC,TBD,PLD U2B pg [12],CPU1 12V aux power good via PFR; R41 10K pull-down; PLD relay [pg 12],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,CPU Platform Reset,Low (active low),RST_PLTRST_CPU_N,SCM PLD → BMC,TBD,PLD U2F pg [11],Platform reset for primary CPU; PLD U2F output to BMC [pg 11],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,CPU1 Platform Reset,Low (active low),RST_PLTRST_CPU1_N,SCM PLD U2B → BMC,TBD,PLD U2B pg [11],Platform reset for CPU1; PLD U2B output to BMC [pg 11],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,BIOS POST Complete,Low (active low),FM_BMC_POST_CMPT_N,SCM PLD → BMC,TBD,PLD U2B pg [21],PLD signals BIOS POST completion to BMC [pg 21],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,System Power OK to BMC,High (active high),SYS_PWROK_BMC,SCM PLD → BMC,TBD,PLD U2B,System-wide power OK indicator from PLD to BMC,VIA PLD - ball TBD
+TBD,TBD,TBD,Input,PLD Interrupt Request,Low (active low),PLD_IRQ_N,SCM PLD U2B → BMC,TBD,PLD U2B pg [21],General PLD interrupt; R373 4.7K 5% 1/16W pull-up; PLD U2B output [pg 21],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,PLD BMC Reset,Low (active low),RST_PLD_BMC_SRST_N,SCM PLD U2A → BMC,TBD,PLD U2A pg [23],PLD-initiated BMC reset; PLD U2A output [pg 23],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,S3 Sleep State,Low (active low),FM_SLPS3_N,SCM PLD → BMC,TBD,PLD U2F pg [21],CPU S3 sleep state signal relayed by PLD [pg 21],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,RTC Interrupt,Low (active low),INT_RTC_N,SCM PLD → BMC (RTC on i2c15),TBD,PLD U2B pg [34],RTC interrupt from on-module RTC via PLD; PLD U2B [pg 34],VIA PLD - ball TBD
+TBD,TBD,TBD,Input,PFR BMC SSPR Reset,Low (active low),RST_PFR_BMC_SSPRSTL_N,PFR → SCM PLD → BMC,TBD,PLD U2B pg [34],PFR-initiated BMC supervisor processor reset; PLD relay [pg 34],VIA PLD - ball TBD
+TBD,TBD,TBD,Output,HPM Standby Reset from PLD,Low (active low),PLD_HPM_STBY_RST_N,SCM PLD → HPM FPGA,TBD,PLD U2F pg [12],PLD drives HPM standby reset [pg 12],VIA PLD - ball TBD
+SGPIOM2,SGPIO2,,Bidir,SGPIO Master 2 Chain (BMC↔PLD),N/A,SGPIOM2_BMC_PLD_*,SCM PLD (U2B),TBD (GPIOM bank),PLD U2B pg [30],SGPIOM2 Load signal confirmed at U2B (SGPIOM2_BMC_PLD_LO); CLK/DATA pins TBD; uses AST2620 GPIOM0-3 (TBD),CONFIRMED - pins TBD
+UART5,UART,,Bidir,BMC ↔ PLD Extended Data Channel,N/A,UART5_TX/RX_BMC_PLD_DATA,SCM PLD U2F/U2B,TBD (UART5 pins),PLD U2F/U2B pg [21 and 26],UART5 TX/RX between BMC and PLD; via R371/R328 33ohm; debug conn JP1; separate UART5 PFR channel [12 and 14 and 28],CONFIRMED - UART mapping TBD
+TBD,TBD,TBD,Input,Board Revision ID bit 0,High,FM_SCM_BOARD_REV_ID0,SCM PLD U2B → BMC,TBD,PLD U2B,Board revision ID bit 0 from PLD to BMC,VIA PLD - ball TBD
+TBD,TBD,TBD,Input,Board Revision ID bit 1,High,FM_SCM_BOARD_REV_ID1,SCM PLD U2B → BMC,TBD,PLD U2B,Board revision ID bit 1 from PLD to BMC,VIA PLD - ball TBD
+TBD,TBD,TBD,Input,Board Revision ID bit 2,High,FM_SCM_BOARD_REV_ID2,SCM PLD U2B → BMC,TBD,PLD U2B,Board revision ID bit 2 from PLD to BMC,VIA PLD - ball TBD
+TBD,TBD,TBD,Input,ABR PFR CPU Boot Select,High,ABR_PFR_CPU_SEL,SCM PLD → PFR,TBD,PLD U2F,Alternative Boot ROM CPU select (PFR feature); via R409/R404 10K pull-up,VIA PLD - ball TBD
