@@ -552,10 +552,12 @@
 //                              BMC_I2C6, BMC_HVI3C3_I2C1 (bus topology TBD).
 //   AST1060 I2C address for BMC access: TBD (typically 0x38 or 0x70).
 // ---------------------------------------------------------------------------
-&i2c16 {
-	status = "okay";
-	/* TODO: add AST1060 node (address TBD) once PFR firmware I2C map is confirmed */
-};
+// &i2c16 is not defined in aspeed-g6.dtsi (AST2600 only has i2c0–i2c15).
+// BMC_I2C16 / PFR AST1060 link — enable once upstream DTSI adds the label.
+// &i2c16 {
+// 	status = "okay";
+// 	/* TODO: add AST1060 node (address TBD) once PFR firmware I2C map is confirmed */
+// };
 
 // ---------------------------------------------------------------------------
 // LPC / KCS — host IPMI interface (BMC receives LPC from eSPI-to-LPC bridge)
@@ -605,9 +607,12 @@
 // and not connected to fans on Q2C.
 // Fan control is via the SCM PLD at i2c15 @0x40.
 // ---------------------------------------------------------------------------
-&pwm_tacho {
-	status = "disabled";
-};
+// pwm_tacho does not exist in aspeed-g6.dtsi (AST2600). The old combined
+// PWM/tach controller is only in AST2400/AST2500 (g4/g5). Fan control on
+// Q2C is via the SCM PLD over i2c15 @0x40, so no direct PWM is needed.
+// &pwm_tacho {
+// 	status = "disabled";
+// };
 
 // ---------------------------------------------------------------------------
 // UART / Console

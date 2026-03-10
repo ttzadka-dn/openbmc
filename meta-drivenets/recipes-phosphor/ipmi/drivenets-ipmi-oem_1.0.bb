@@ -22,7 +22,7 @@ DEPENDS += " \
 
 do_install:append() {
     install -d ${D}${datadir}/drivenets-ipmi-oem
-    install -m 0644 ${UNPACKDIR}/sensors.json \
+    install -m 0644 ${WORKDIR}/sensors.json \
         ${D}${datadir}/drivenets-ipmi-oem/sensors.json
 }
 

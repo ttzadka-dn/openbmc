@@ -23,5 +23,5 @@ PACKAGECONFIG:append = " concurrent-servers"
 
 do_install:append() {
     rm -rf ${D}${nonarch_base_libdir}/udev/rules.d/80-obmc-console-uart.rules
-    install -m 0644 ${UNPACKDIR}/client.*.conf ${D}${sysconfdir}/${BPN}/
+    install -m 0644 ${WORKDIR}/client.*.conf ${D}${sysconfdir}/${BPN}/
 }
