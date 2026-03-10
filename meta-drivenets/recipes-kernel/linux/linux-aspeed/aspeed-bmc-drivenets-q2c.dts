@@ -5,8 +5,8 @@
 // BMC SoC: ASPEED AST2620 (AST2600-family variant)
 //
 // ============================================================================
-// ARCHITECTURE (confirmed from schematic 8AESQ2CMB0A1G_SCH_20251217D
-//               and I2C tree diagram Q2C_I2C_Tree_20260123)
+// ARCHITECTURE (confirmed from schematic 8AESQ2SCM0A1G_SCH_20260203 PDF read
+//               2026-03-05, and I2C tree diagram Q2C_I2C_Tree_20260123)
 // ============================================================================
 //
 //  The AST2620 BMC is on the DC-SCM (Data Center Secure Control Module),
@@ -59,7 +59,8 @@
 //  UART / Console:
 //    UART0_BMC + UART1_BMC → physical MUX (UART_SEL push-button)
 //    MUX output → Console Board → UART_RJ45 (RS-232)
-//    Console UART: TBD (ttyS0 or ttyS4)
+//    Console UART: ttyS4 (UART5) — confirmed via ast2600_openbmc_spl_defconfig
+//    CONFIG_BOOTARGS="console=ttyS4,115200n8 root=/dev/ram rw"
 //
 //  SGPIO:
 //    SGPIOM1 (GPIOH0-H3) → SCM PLD → panel LEDs  (only chain, confirmed)
@@ -331,91 +332,143 @@
 // ---------------------------------------------------------------------------
 // GPIO — named lines from the DC-SCM / carrier board
 //
-// ARCHITECTURE NOTE (confirmed from GPIO schematic pages):
-//   PSU presence, ACOK, PWOK, PSON, reset button, SUS_S3/4/5, and other
-//   platform signals do NOT connect directly to AST2620 GPIO pins.
-//   They are read/controlled by the SCM PLD, which relays them to the BMC
-//   via the GPIOO bank (PLD_BMC_GPIOQ* signals on TACH-function pins) and
-//   the GPIOP bank (BMC_PLD_GPIO* control outputs on PWM-function pins).
-//   The exact GPIOO pin → PLD function mapping requires schematic pages
-//   [27], [28], [31] which show what PLD_BMC_GPIOQ0-7 represent.
+// ARCHITECTURE NOTE (confirmed from full schematic PDF 8AESQ2SCM0A1G_SCH_20260203,
+//                   read 2026-03-05):
+//   Platform signals route through the SCM PLD.  The BMC monitors PLD→BMC status
+//   via the GPIOQ bank (TACH0-7 function pins) and GPIOR bank (TACH8-15 function
+//   pins).  BMC control outputs to PLD use the GPIOO bank (PWM0-7 function) and
+//   GPIOP bank (PWM8-15/THRU function).
 //
-// Confirmed signal → ball → bank/bit:
+//   GPIO bank layout (all balls confirmed from pg 23 "AST2600 4/6", 2026-03-05):
+//
+//   GPIOO (PWM0-7 function — BMC→PLD control outputs):
+//     O0 (AD26)  O1 (AD22)  O2 (AD23)  O3 (AD24)
+//     O4 (AD25)  O5 (AC22)  O6 (AC24)  O7 (AC23)
+//     Signals from PLD pg 27: BMC_PLD_GPIOO1/2/3/6/7
+//
+//   GPIOP (PWM8-15/THRU function — mixed):
+//     P0 (AB22) THRUIN0   P1 (W24) THRUOUT0   P2 (AA23) THRUIN1   P3 (AA24) THRUOUT1
+//     P4 (W23) THRUIN2    P5 (AB23) THRUOUT2   P6 (AB24)            P7 (Y23) HBLED#
+//
+//   GPIOQ (TACH0-7 function — PLD→BMC status inputs):
+//     Q0 (AA25)  Q1 (AB25)  Q2 (Y24)  Q3 (AB26)
+//     Q4 (Y26)   Q5 (AC26)  Q6 (Y25)  Q7 (AA26)
+//     Signals from PLD pg 27/28/31: PLD_BMC_GPIOQ0/3/4/5/6/7
+//
+//   GPIOR (TACH8-15 function — mixed):
+//     R0 (V25)  R1 (U24)  R2 (V24)  R3 (V26)
+//     R4 (U25)  R5 (T23)  R6 (W26)  R7 (U26)
+//     R0-R2: PLD_BMC_GPIOR0/1/2 (inputs)    R4: FM_BMC_READY_N (output)
+//     R5: PWRGD_P12V_AUX1 (input)            R6: FM_THERMTRIP_N (input)
+//     R7: IRQ_SMI_BMC_N (input from PLD)
+//
 //   GPIOB0 (J26): hpm-bmc-stby-rdy (SALT1 mode, input from HPM FPGA)
-//   GPIOO0 (AA25): pld-bmc-gpioq0 [pg 27] — PLD status → BMC
-//   GPIOO1 (AB25): pld-bmc-gpioq3 [pg 31] — PLD status → BMC
-//   GPIOO2 (AB26): pld-bmc-gpioq5 [pg 31] — PLD status → BMC
-//   GPIOO3 (Y26):  pld-bmc-gpioq6 [pg 31] — PLD status → BMC
-//   GPIOO4 (AC26): pld-bmc-gpioq7 [pg 28] — PLD status → BMC
-//   GPIOO5 (Y25):  pld-bmc-gpioq-tbd5 [pg 28] — PLD status → BMC
-//   GPIOO6 (AA26): pld-bmc-gpioq-tbd6 [pg 28] — PLD status → BMC
-//   GPIOO7 (U24):  pld-bmc-gpioq-tbd7 [pg 28] — PLD status → BMC
-//   GPIOP0 (W24):  bmc-pld-gpio-p0 — BMC → PLD control (PWM8/THRUIN0)
-//   GPIOP1 (AA23): bmc-pld-gpio-p1 — BMC → PLD control (PWM9/THROUT0)
-//   GPIOP7 (Y23):  fm-bmc-heartbeat-n (HBLED#/PWM15, BMC heartbeat output)
-//   GPIOR0 (V24):  pld-bmc-gpior0 [pg 27] — PLD status → BMC
-//   GPIOR1 (V26):  pld-bmc-gpior1 [pg 27] — PLD status → BMC
-//   GPIOR6 (W26):  fm-thermtrip-n [pg 31] — thermal trip input, via R86 1Ω
-//   (U26):         irq-smi-bmc-n [pg 31] — SMI interrupt input (bank/bit TBD)
 // ---------------------------------------------------------------------------
 &gpio0 {
 	gpio-line-names =
 	// A0-A7
+	// A4-A7: SGPIOM2 function (SGPM2CK/LD/O/I to SCM PLD) — see sgpiom2 node
 	"", "", "", "", "", "", "", "",
 	// B0-B7
 	// B0 (J26) = GPIOB0_SALT1: hpm-bmc-stby-rdy (input from HPM FPGA)
-	// B1 (K23) = GPIOB1_SALT2: signal TBD [pg 9,11,30]
+	// B1 (K23) = GPIOB1_SALT2: signal TBD
+	// B6 (H25) = GPIOB6_TXD4: UART4 TX to PLD [pg 27]
+	// B7 (J24) = GPIOB7_RXD4: UART4 RX from PLD [pg 27]
 	"hpm-bmc-stby-rdy", "", "", "", "", "", "", "",
-	// C0-C7
+	// C0-C7 (RGMII3/MAC3 pins — not used as named GPIOs)
 	"", "", "", "", "", "", "", "",
-	// D0-D7
+	// D0-D7 (RGMII4/MAC4 pins — MAC4 carries NCSI)
 	"", "", "", "", "", "", "", "",
-	// E0-E7  (no direct platform GPIO signals confirmed here)
+	// E0-E7 (RGMII4/MAC4 pins continued)
 	"", "", "", "", "", "", "", "",
-	// F0-F7  (GPIOF0-F7 = SD1/PWM8-15, pulled down via R31T — unused on Q2C)
+	// F0-F7 (GPIOF0-F7 = SD1/PWM8-15, pulled down — unused on Q2C)
 	"", "", "", "", "", "", "", "",
-	// G0-G7  (GPIOG0-G7 = SD2/SALT, pulled down via R363 — unused on Q2C)
+	// G0-G7 (GPIOG0-G7 = SD2/SALT, pulled down — unused on Q2C)
 	"", "", "", "", "", "", "", "",
-	// H0-H7  (H0-H3 = SGPIOM1 to PLD; H4-H7 = I2C15/I2C16 — not named GPIO)
+	// H0-H7 (H0-H3 = SGPIOM1 to PLD; H4-H7 = I2C15/I2C16)
 	"", "", "", "", "", "", "", "",
-	// I0-I7
+	// I0-I7 (I0-I4=JTAG-M2 to HPM; I5-I7=ACPI PLD_BMC_GPIOI5/6/7)
 	"", "", "", "", "", "", "", "",
-	// J0-J7
+	// J0-J7 (I2C bus pins)
 	"", "", "", "", "", "", "", "",
-	// K0-K7
+	// K0-K7 (I2C bus pins)
 	"", "", "", "", "", "", "", "",
-	// L0-L7
+	// L0-L7 (I2C/VGA pins)
 	"", "", "", "", "", "", "", "",
-	// M0-M7
+	// M0-M7 (UART1 modem control; M6=UART1 TX, M7=UART1 RX to PLD [pg 29])
 	"", "", "", "", "", "", "", "",
-	// N0-N7
+	// N0-N7 (UART2; N6=UART2 TX, N7=UART2 RX to PLD [pg 27])
 	"", "", "", "", "", "", "", "",
-	// O0-O7 (GPIOO bank, balls AA25/AB25/AB26/Y26/AC26/Y25/AA26/U24)
-	// TACH0-7 function — used as PLD→BMC status GPIO inputs
-	// Full signal meaning requires schematic pages [27,28,31]
-	"pld-bmc-gpioq0", "pld-bmc-gpioq3", "pld-bmc-gpioq5", "pld-bmc-gpioq6",
-	"pld-bmc-gpioq7", "pld-bmc-gpioq-tbd5", "pld-bmc-gpioq-tbd6", "pld-bmc-gpioq-tbd7",
-	// P0-P7 (GPIOP bank: PWM8-15/THRU function)
-	// P0-P6: BMC→PLD control outputs (BMC_PLD_GPIO signals [pg 27])
-	// P7 (Y23) = fm-bmc-heartbeat-n (HBLED#/PWM15)
-	"bmc-pld-gpio-p0", "bmc-pld-gpio-p1", "bmc-pld-gpio-p2", "bmc-pld-gpio-p3",
-	"bmc-pld-gpio-p4", "bmc-pld-gpio-p5", "bmc-pld-gpio-p6", "fm-bmc-heartbeat-n",
-	// Q0-Q7
-	"", "", "", "", "", "", "", "",
-	// R0-R7 (GPIOR bank: TACH8-15 function)
-	// R0 (V24): pld-bmc-gpior0 [pg 27], R1 (V26): pld-bmc-gpior1 [pg 27]
-	// R2: pld-bmc-gpior2 [pg 27], R3-R5: TBD/unused
-	// R6 (W26): fm-thermtrip-n [pg 31] — platform thermal trip input
-	"pld-bmc-gpior0", "pld-bmc-gpior1", "pld-bmc-gpior2", "",
-	"", "", "fm-thermtrip-n", "";
-	// Signals confirmed but bank/bit not yet precisely determined:
-	//   irq-bmc-smi-n      ← SMI interrupt from PLD [U2F/R407 pull-up], ball ~U26
-	//   rpm-rstind-n       ← fan RPM reset indicator [pg 12,26,34]
-	//   irq-nmi-event-n    ← NMI event (from PLD U2B → AST2620 [21]), ball TBD
-	//   spi-hpm-scm-irq0-n ← HPM IRQ [pg 9]
-	//   i210-rst-l         ← Intel I210 NIC reset (BMC output, bank/bit TBD)
-	// PSU/button/power signals come via SCM PLD → GPIOO pld-bmc-gpioq* above.
-	// See schematic pages [27,28,31] to map each GPIOQ pin to its PSU signal.
+	// O0-O7 (GPIOO bank: PWM0-7 function — BMC→PLD control outputs)
+	// All balls confirmed from schematic pg 23 (AST2600 4/6), 2026-03-05 PDF read.
+	// O0 (AD26): unassigned   O4 (AD25): unassigned
+	// O1 (AD22): BMC_PLD_GPIOO1 → PLD [pg 27]
+	// O2 (AD23): BMC_PLD_GPIOO2 → PLD PROGRAMN (PLD programming control)
+	// O3 (AD24): BMC_PLD_GPIOO3 → PLD [pg 27]
+	// O6 (AC24): BMC_PLD_GPIOO6 → PLD JTAGENB (PLD JTAG enable)
+	// O7 (AC23): BMC_PLD_GPIOO7 → PLD [pg 27]
+	"",               // O0 (AD26) unassigned
+	"bmc-pld-gpioo1", // O1 (AD22) BMC_PLD_GPIOO1 → PLD [pg 27]
+	"pld-programn",   // O2 (AD23) BMC_PLD_GPIOO2 → PLD PROGRAMN
+	"bmc-pld-gpioo3", // O3 (AD24) BMC_PLD_GPIOO3 → PLD [pg 27]
+	"",               // O4 (AD25) unassigned
+	"",               // O5 (AC22) unassigned
+	"pld-jtagenb",    // O6 (AC24) BMC_PLD_GPIOO6 → PLD JTAGENB
+	"bmc-pld-gpioo7", // O7 (AC23) BMC_PLD_GPIOO7 → PLD [pg 27]
+	// P0-P7 (GPIOP bank: PWM8-15/THRU function — mixed input/output)
+	// All balls confirmed from schematic pg 23 (AST2600 4/6), 2026-03-05 PDF read.
+	// THRU pairs: P0(THRUIN0)/P1(THRUOUT0), P2/P3, P4/P5.
+	// P0 (AB22): PCIE_HPM_SCM_PLD_PERST_N — INPUT from PLD [pg 27] via THRUIN0
+	// P1 (W24):  BMC_PLD_GPIOP1 — OUTPUT to PLD [pg 31] via THRUOUT0
+	// P2 (AA23): unassigned (THRUIN1)
+	// P3 (AA24): BMC_PLD_GPIOP3 — OUTPUT to PLD [pg 31] via THRUOUT1
+	// P4 (W23):  unassigned (THRUIN2)
+	// P5 (AB23): BMC_PLD_GPIOP4 — OUTPUT to PLD [pg 30] via THRUOUT2
+	//            (PLD names this "GPIOP4" — maps to AST2620 GPIOP5/THRUOUT2)
+	// P6 (AB24): PCIE_AST2600_RST# — OUTPUT to gold finger [pg 9]
+	// P7 (Y23):  FM_BMC_HEARTBEAT_N — BMC heartbeat to PLD (HBLED# function)
+	"pcie-hpm-scm-pld-perst-n", // P0 (AB22) INPUT from PLD [pg 27]
+	"bmc-pld-gpiop1",            // P1 (W24)  OUTPUT to PLD [pg 31]
+	"",                          // P2 (AA23) unassigned
+	"bmc-pld-gpiop3",            // P3 (AA24) OUTPUT to PLD [pg 31]
+	"",                          // P4 (W23)  unassigned
+	"bmc-pld-gpiop4",            // P5 (AB23) OUTPUT to PLD [pg 30]
+	"pcie-ast2600-rst-n",        // P6 (AB24) PCIE_AST2600_RST# [pg 9]
+	"fm-bmc-heartbeat-n",        // P7 (Y23)  FM_BMC_HEARTBEAT_N (HBLED#)
+	// Q0-Q7 (GPIOQ bank: TACH0-7 function — PLD→BMC status inputs)
+	// All balls confirmed from schematic pg 23 (AST2600 4/6), 2026-03-05 PDF read.
+	// Q1 (AB25): unlabeled in schematic — possibly PLD_BMC_GPIOQ1 or unused.
+	// Q2 (Y24): no connect (confirmed in schematic).
+	// Signals confirmed from PLD pages 27/28/31.
+	// Q6/Q7 CORRECTED: Q6=Y25 and Q7=AA26 (previously swapped in DTS).
+	"pld-bmc-gpioq0", // Q0 (AA25) PLD_BMC_GPIOQ0 [pg 27]
+	"",               // Q1 (AB25) unlabeled/unused
+	"",               // Q2 (Y24)  no connect
+	"pld-bmc-gpioq3", // Q3 (AB26) PLD_BMC_GPIOQ3 [pg 31]
+	"pld-bmc-gpioq4", // Q4 (Y26)  PLD_BMC_GPIOQ4 [pg 31]
+	"pld-bmc-gpioq5", // Q5 (AC26) PLD_BMC_GPIOQ5 [pg 27]
+	"pld-bmc-gpioq6", // Q6 (Y25)  PLD_BMC_GPIOQ6 [pg 27] — CORRECTED (was AA26)
+	"pld-bmc-gpioq7", // Q7 (AA26) PLD_BMC_GPIOQ7 [pg 28] — CORRECTED (was Y25)
+	// R0-R7 (GPIOR bank: TACH8-15 function — mixed input/output)
+	// All balls confirmed from schematic pg 23 (AST2600 4/6), 2026-03-05 PDF read.
+	// CORRECTIONS: R0=V25, R1=U24, R2=V24, R3=V26, R4=U25 (all shifted vs old DTS).
+	// R3 (V26): unassigned (not fm-bmc-ready-n — that is at R4).
+	// R4 (U25): FM_BMC_READY_N — OUTPUT (was wrongly at R3 in old DTS).
+	"pld-bmc-gpior0",  // R0 (V25) PLD_BMC_GPIOR0 INPUT [pg 27] — CORRECTED (was U24)
+	"pld-bmc-gpior1",  // R1 (U24) PLD_BMC_GPIOR1 INPUT [pg 27] — CORRECTED (new)
+	"pld-bmc-gpior2",  // R2 (V24) PLD_BMC_GPIOR2 INPUT [pg 27] — CORRECTED (was V26)
+	"",                // R3 (V26) unassigned — CORRECTED (fm-bmc-ready-n was wrong)
+	"fm-bmc-ready-n",  // R4 (U25) FM_BMC_READY_N OUTPUT [pg 27] — CORRECTED (was R3)
+	"pwrgd-p12v-aux1", // R5 (T23) PWRGD_P12V_AUX1 INPUT [pg 27] ✓
+	"fm-thermtrip-n",  // R6 (W26) FM_THERMTRIP_N INPUT via R86 [pg 31] ✓
+	"irq-smi-bmc-n";   // R7 (U26) IRQ_SMI_BMC_N INPUT [pg 27] ✓
+	// Signals confirmed from PLD schematic but AST2620 bank/bit still TBD:
+	//   irq-nmi-event-n      ← IRQ_NMI_EVENT_R_N [pg 28]
+	//   sys-pwrok-bmc        ← SYS_PWROK_BMC [pg 28] → AST2620 GPIOV/GPIOI region
+	//   fm-bios-post-cmplt-n ← FM_BIOS_POST_CMPLT_N [pg 28]
+	//   pld-irq-n            ← PLD_IRQ_N [pg 28]
+	//   rst-rsmrst-n         ← RST_RSMRST_N [pg 28]
+	//   rst-pfr-bmc-ssprst-n ← RST_PFR_BMC_SSPRST_N [pg 28]
 };
 
 // ---------------------------------------------------------------------------
@@ -425,52 +478,49 @@
 // This bus is entirely within the DC-SCM module and does NOT go through
 // the gold finger connector.
 //
-// Confirmed devices (from Q2C block diagram):
-//   TEMP1        — DC-SCM temp sensor at 0x48 (type TBD; TMP75 assumed)
-//   TEMP2        — DC-SCM temp sensor at 0x49 (type TBD; TMP75 assumed)
-//   FRU EE       — SCM module FRU EEPROM at 0x50
-//   RTC          — Real-time clock at 0x32 (part TBD)
-//   PMIC         — Power management IC at 0x14 (part TBD)
+// Confirmed devices (from schematic pg 34 "TMP_EE_RTC" and pg 36 "PMIC",
+//                   full PDF read 2026-03-05):
+//   TEMP1        — LM73CIMK temp sensor at 0x48 (part confirmed)
+//   TEMP2        — LM73CIMK temp sensor at 0x49 (part confirmed)
+//   FRU EE       — ST M24C64-RMN6TP EEPROM at 0x50 (8KB, pagesize 32B)
+//   RTC          — Epson RX8130CE real-time clock at 0x32 (part confirmed)
+//   PMIC         — APW6016P1 DC-DC converter at 0x12 (part confirmed)
 //   SCM PLD      — Platform Logic Device at 0x40 (update/programming interface)
 //                  Also exposed at 0x6F via PFR_I2C5 on carrier (TBD)
-//
-// NOTE: TMP75 compatible used as a placeholder for TEMP1/TEMP2 —
-//       confirm actual part from DC-SCM BOM.
 // ---------------------------------------------------------------------------
 &i2c15 {
 	status = "okay";
 
 	scm_temp1: temperature-sensor@48 {
-		compatible = "ti,tmp75";
+		compatible = "ti,lm73";
 		reg = <0x48>;
 		label = "scm_temp1";
 		#thermal-sensor-cells = <0>;
 	};
 
 	scm_temp2: temperature-sensor@49 {
-		compatible = "ti,tmp75";
+		compatible = "ti,lm73";
 		reg = <0x49>;
 		label = "scm_temp2";
 		#thermal-sensor-cells = <0>;
 	};
 
 	scm_fru: eeprom@50 {
-		compatible = "atmel,24c128";
+		compatible = "st,m24c64";
 		reg = <0x50>;
 		label = "scm_fru";
-		pagesize = <64>;
+		pagesize = <32>;
 	};
 
 	scm_rtc: rtc@32 {
-		/* TODO: replace compatible with actual RTC part from BOM */
-		compatible = "microcrystal,rv8803";
+		compatible = "epson,rx8130";
 		reg = <0x32>;
 	};
 
-	scm_pmic: regulator@14 {
-		/* TODO: replace compatible with actual PMIC part from BOM */
-		compatible = "issi,is31fl32xx";
-		reg = <0x14>;
+	scm_pmic: regulator@12 {
+		/* APW6016P1 step-down DC-DC converter (confirmed from pg 36) */
+		compatible = "anpec,apw6016p1";
+		reg = <0x12>;
 	};
 
 	scm_pld: i2c-slave@40 {
@@ -529,14 +579,22 @@
 // ---------------------------------------------------------------------------
 // SGPIOM2 — second SGPIO master chain between BMC and SCM PLD
 //
-// Confirmed from PLD U2B schematic: SGPIOM2_BMC_PLD_LO [30] is present.
-// This carries PLD status bits that don't fit on SGPIOM1 (panel LEDs) or GPIOO.
-// SGPIOM2 uses GPIOM0-M3 on AST2620 (CLK/LOAD/DOUT/DIN — AST2620 pinmux TBD).
-// Number of output/input bits and exact data format: TBD from PLD firmware docs.
+// All four SGPIOM2 signals confirmed from PLD U2 schematic [pg 20]:
+//   SGPIOM2_BMC_PLD_CLK  — BMC drives clock  (IN to PLD)  [pg 20]
+//   SGPIOM2_BMC_PLD_DO   — BMC drives data   (IN to PLD)  [pg 20]
+//   SGPIOM2_BMC_PLD_LD   — BMC drives LOAD   (IN to PLD)  [pg 20]
+//   SGPIOM2_BMC_PLD_DI   — PLD drives data   (OUT from PLD, BMC reads) [pg 20]
+//
+// BMC is SGPIO master; SCM PLD is slave.  This chain carries PLD status bits
+// that don't fit on SGPIOM1 (panel LEDs) or the GPIOO bank.
+//
+// AST2620 pinmux: GPIOA4-A7 (balls K26/L24/L23/K25) confirmed from pg 20
+// schematic review, 2026-03-05.  Use pinctrl_sgpm2ck/ld/o/i_default.
+// Bit count and data format: TBD from PLD firmware docs.
 // ---------------------------------------------------------------------------
 // &sgpiom2 {
 //     status = "okay";
-//     /* SCM PLD SGPIOM2 chain — bit count TBD from PLD firmware */
+//     /* SCM PLD SGPIOM2 slave chain — bit count TBD from PLD firmware */
 //     ngpios = <TBD>;
 //     gpio-line-names = /* TBD */;
 // };
@@ -554,43 +612,74 @@
 // ---------------------------------------------------------------------------
 // UART / Console
 //
-// UART0_BMC + UART1_BMC → physical MUX → Console Board → UART_RJ45
-// Console UART: TBD (ttyS0 or ttyS4) — verify from U-Boot boot log.
+// UART0_BMC + UART1_BMC → physical MUX (UART_SEL push-button) → Console Board → UART_RJ45
+// Console UART: ttyS4 (UART5) — confirmed from ast2600_openbmc_spl_defconfig.
 //
-// UART5 — BMC ↔ SCM PLD extended data channel (confirmed from PLD U2F/U2B)
-//   UART5_TX_BMC_PLD_DATA [21,26] — BMC → PLD (via R371 33Ω + JP1 debug conn.)
-//   UART5_RX_BMC_PLD_DATA [21,26] — PLD → BMC (via R328 33Ω)
-//   Separate PFR channel: UART5_TX_PFR_PLD_DATA / UART5_RX_PLD_PFR_DATA [12,14,28]
-//   Enable once BMC↔PLD UART5 protocol is defined.
+// BMC ↔ SCM PLD UART channels (confirmed from PLD U2 schematic):
+//   UART2_TX_BMC_PLD_DATA [21]    — BMC → PLD  (IN to PLD)
+//   UART4_TX_BMC_PLD_DATA [21]    — PLD → BMC  (OUT from PLD, BMC receives on UART4 RX)
+//   UART5_RX_PLD_BMC_DATA [21,31] — BMC → PLD  (BMC UART5 TX, IN to PLD, via R328 33Ω)
+//   UART5_TX_BMC_PLD_DATA [21,26] — PLD → BMC  (BMC UART5 RX, via R371 33Ω + JP1 debug)
+//
+// PFR-related UART channels (via PLD, not direct to BMC):
+//   UART1_TX_PFR_PLD_DATA [12,14,31] — PFR → PLD (via R349 33Ω, OUT from PLD side)
+//
+// Enable UART nodes once protocol per channel is defined and ttyS mapping confirmed.
 // ---------------------------------------------------------------------------
 // &uart5 {
 //     status = "okay";
-//     /* BMC ↔ SCM PLD extended data channel */
+//     /* BMC ↔ SCM PLD extended data channel (UART5_TX/RX_BMC_PLD_DATA) */
 // };
 
 // ---------------------------------------------------------------------------
 // Management Network
 //
 // 1. OOB NIC — Intel I210 via PCIe Gen2 x1 (reset: I210_RST_L)
-// 2. NCSI — AMD x86 COMe NIC → DC-SCM MAC (TBD: mac0 or mac1)
+// 2. NCSI — AMD x86 COMe NIC → DC-SCM MAC4 (RGMII4 pins confirmed from pg 23)
 //
-// Uncomment once the correct MAC is identified:
+// AST2620 MAC4 = kernel mac3 (0-indexed).  RGMII4 signal group confirmed on
+// AST2620 ball D-row (MAC4 RGMII signals) from schematic pg 23, 2026-03-05.
 // ---------------------------------------------------------------------------
-// &mac1 {
-//     use-ncsi;
-// };
+&mac3 {
+	use-ncsi;
+	status = "okay";
+};
 
 // ---------------------------------------------------------------------------
-// ADC — Voltage Rail Sensing (12 channels confirmed from GPIO schematic pg 16)
+// ADC — Voltage Rail Sensing
+// Resistors confirmed from schematic pg 32 (zoomed images 2026-03-04).
+// Channel → pin mapping confirmed from schematic pg 23 (2026-03-04 image).
 //
-// All ADC channels carry voltage-divider outputs for rail monitoring.
-// Handled by the aspeed_adc hwmon driver; values exposed via iio sysfs.
-// Exact voltage divider ratios and calibration are TBD from schematic pg 32.
+// aspeed_adc iio driver: V_real = (raw × 1800 mV / 4096) × scale_factor
+// Scale factor = (R_top + R_bottom) / R_bottom (direct-sense rails = 1.0).
+//
+// FULL CONFIRMED MAPPING (13 active channels, confirmed from pg 23 + pg 32 PDF):
+//   Ch  GPIO/SALT  Ball  Signal                      R_top  R_bot  Scale
+//   ──  ─────────  ────  ──────────────────────────  ─────  ─────  ─────
+//   0   GPIT0      AD20  VCC_12V_SENSE (P12V_AUX)    20k   2.49k  9.036
+//   1   GPIT1      AC18  VCC_3V3_SENSE                3k    2k    2.500
+//   2   GPIT2      AE19  VCC_2V5_SENSE                2k   2.49k  1.803
+//   3   GPIT3      AD19  VCC_1V8_SENSE                2k    3k    1.667
+//   4   GPIT4      AC19  VCC_DDRVDDQ_SENSE (1.2V)  direct  —     1.000
+//   5   GPIT5      AB19  VCC_1V0_SENSE (1.0V)      direct  —     1.000
+//   6   GPIT6      AB18  VCC_DDRVTT_SENSE (~0.6V)  direct  —     1.000
+//   7   GPIT7      AE18  A_P3V_BAT_SCALED            200k  100k   3.000
+//                          (MOSFET OR: D7/D8=SBR1A040S3-7, Q=MTDH500RETU-G)
+//   8   GPIU0/S9   AB16  VCC_3V3_RGM_SENSE            3k    2k    2.500
+//   9   GPIU1/S10  AA17  VCC_SCM_HPM_FRU_3V3_SENSE   3k    2k    2.500
+//  10   GPIU2/S11  AB17  VCC_LS_CH1_3V3_SENSE         3k    2k    2.500
+//  11   GPIU3/S12  AE16  VCC_LS_CH2_1V8_SENSE         2k    3k    1.667
+//  12   GPIU4/S13  AC16  PECI_VDD_SENSE (~1V)      direct  —     1.000
+//  13   GPIU5/S14  AA16  GND (unused, tied low)
+//  14   GPIU6/S15  AD16  GND (unused, tied low)
+//  15   GPIU7/S16  AC17  unused
+//
+// Ball assignments for ADC8-12 corrected from full PDF read (pg 23, 2026-03-05):
+//   Prior DTS had AB17/TBD/AE16/AC16/AA16; corrected to AB16/AA17/AB17/AE16/AC16.
 // ---------------------------------------------------------------------------
 &adc0 {
-	// ADC0-7: GPIT0-7 (balls AD20, AC18, AE19, AD19, AC19, AB19, AB18, AA17)
-	// Channels: VCC_12V_SENSE, VCC_3V3_SENSE, VCC_2V5_SENSE, VCC_DDRVDDQ_SENSE,
-	//           VCC_1V0_SENSE, VCC_DDRVTT_SENSE, A_P3V_BAT_SCALED, VCC_3V3_RGM_SENSE
+	// ADC0-7: GPIT0-7 (balls AD20, AC18, AE19, AD19, AC19, AB19, AB18, AE18)
+	// See channel table above for signal names and scale factors.
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_adc0_default &pinctrl_adc1_default
@@ -600,25 +689,32 @@
 };
 
 &adc1 {
-	// ADC8-11: GPIU0-3/SALT9-12 (balls AE17, AE16, AD16, AC16)
-	// Channels: VCC_SCM_HPM_FRU_3V3_SENSE, VCC_LS_CH1_3V3_SENSE,
-	//           VCC_LS_CH2_1V8_SENSE, PECI_VDD_SENSE
+	// ADC8-12: GPIU0-4/SALT9-13 (balls AB16, AA17, AB17, AE16, AC16)
+	// ADC12 (GPIU4/SALT13, ball AC16) = PECI_VDD_SENSE — enabled here.
+	// ADC13-15 (GPIU5-7, balls AA16/AD16/AC17) tied to GND or unused.
+	// See channel table above for signal names and scale factors.
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_adc8_default &pinctrl_adc9_default
-		     &pinctrl_adc10_default &pinctrl_adc11_default>;
+	pinctrl-0 = <&pinctrl_adc8_default  &pinctrl_adc9_default
+		     &pinctrl_adc10_default  &pinctrl_adc11_default
+		     &pinctrl_adc12_default>;
 };
 
 // ---------------------------------------------------------------------------
-// RESOLVED from schematic analysis:
+// RESOLVED from schematic analysis (last updated 2026-03-05, full PDF read):
 //  [x] AST2620 I2C controller numbers confirmed from block diagram:
 //        i2c15 (BMC_I2C15) = local DC-SCM bus (I2C_BMC_R_SCL15/SDA15)
 //        i2c11 (BMC_I2C11) = gold finger I2C_3V3_0 (A15/A16)
 //        i2c10 (BMC_I2C10) = gold finger I2C_3V3_4 (A45/A46) — BIOS GPIO
 //        i2c5  (BMC_I2C5)  = gold finger I2C_3V3_5 (A47/A48) — sensors/muxes
 //        i2c16 (BMC_I2C16) = BMC-to-AST1060 PFR I2C link
-//  [x] Local DC-SCM devices on i2c15: TEMP1@0x48, TEMP2@0x49, FRU@0x50,
-//        RTC@0x32, PMIC@0x14, SCM PLD@0x40
+//  [x] Local DC-SCM devices on i2c15 (parts confirmed from pg 34, 36, 2026-03-05):
+//        TEMP1/TEMP2 = LM73CIMK at 0x48/0x49 (confirmed, not TMP75)
+//        FRU EE = ST M24C64-RMN6TP at 0x50 (8KB, pagesize 32B, confirmed)
+//        RTC = Epson RX8130CE at 0x32 (confirmed, not RV8803)
+//        PMIC = APW6016P1 at 0x12 (confirmed, address was wrong at 0x14)
+//        SCM PLD @0x40 — Lattice LCMXO3D-9400HC-5BG256C (confirmed)
+//  [x] DDR4: MT40A512M16TB-062E confirmed (1GB, 16-bit DDR4, not 512MB)
 //  [x] FRU EEPROM location corrected: i2c15 (local), NOT i2c11 (gold finger)
 //  [x] BIOS GPIO corrected: i2c10 (BMC_I2C10), NOT i2c4
 //  [x] TMP435 address: 0x4D on i2c5 (carrier bus I2C_3V3_5)
@@ -627,96 +723,46 @@
 //  [x] PCA9548#16 fan mux: 0x72 on i2c5, CH0-3=fan EEPROMs, CH4=board EEPROM
 //  [x] PCA9548#15 PSU/VR mux: 0x71 on i2c5, CH0=PSU0, CH1=PSU1, CH3=VRs
 //  [x] PSU PMBus address: 0x58 (both PSU0 and PSU1)
-//  [x] GPIO signal names: PSU presence/ACOK/PWOK/PSON, host control signals
 //  [x] SGPIO interface: SGPIOM1 (not SGPIOM0) — GPIOH0-H3 (A18,B18,C18,A17)
-//  [x] PFR chip identified: Aspeed PROT_AST1060 (not Lattice/Microchip)
+//  [x] SGPIOM2 AST2620 pins: GPIOA4-A7 (balls K26/L24/L23/K25) — confirmed pg 20
+//  [x] PFR chip identified: Aspeed PROT_AST1060
 //        BMC → AST1060 via i2c16 (primary) + i2c12/7/9/6/HVI3C3 (topology TBD)
 //        AST1060 → carrier: SMBF1→I2C_3V3_2, SMBF2→I2C_3V3_1, SMBF3→I2C_3V3_3
-//        AST1060 mailbox → I2C_I3C_1V8_12 (gold finger A53/A59)
-//  [x] SPI_HPM_SCM_IRQ0_N: HPM IRQ input GPIO (bank/bit TBD)
-//  [x] Host ↔ BMC interface: LPC received by BMC from eSPI-to-LPC bridge
-//        AMD CPU → eSPI → ESPI_HPMCTRL bridge chip → LPC → BMC AST2620
-//        GPIOW pins (AE7/AF6/AB7/AB5/AD5/AE5) carry LPC (LCLK/LAD[0:3]/LRST)
-//        KCS IPMI channels over standard LPC; &lpc_ctrl + &kcs[N] to enable
-//  [x] GPIOF0-F7: PWM8-15 function available but pulled down (unused on Q2C)
-//  [x] GPIOG0-G7: SD2/SALT function, pulled down (unused on Q2C)
-//  [x] GPIOB0 (ball J26): HPM_BMC_STBY_RDY — input from HPM FPGA (SALT1/GPIO mode)
-//        NOT used as I2C3 SCL — pins are in SALT/GPIO mode, not I2C3 mode
-//  [x] GPIOB2/B3: I2C bus 4 / HVI3C4 SCL/SDA
-//  [x] New named GPIO signals: RPM_RSTIND_N [12,26,34], RQ_NM_EVENT_L [12,26,34]
-//  [x] Second SGPIO chain: CONFIRMED NOT USED — no SGPIOM0 signals in schematic.
-//        Only SGPIOM1 (GPIOH0-H3) connects to SCM PLD for panel LEDs.
-//  [x] GPIO ARCHITECTURE (from schematic pg 16):
-//        PSU presence/ACOK/PWOK/PSON, host ACPI states, reset button, and most
-//        platform management signals are NOT direct GPIO connections to AST2620.
-//        They route through the SCM PLD and arrive on the GPIOO bank (TACH0-7
-//        function pins, balls AA25/AB25/AB26/Y26/AC26/Y25/AA26/U24) as
-//        PLD_BMC_GPIOQ* signals.  BMC control signals go out via GPIOP (PWM8-15
-//        function, balls W24/AA23/AA24/AA22/AB24/AB23/AB22/Y23) as BMC_PLD_GPIO*.
-//  [x] Specific GPIO confirmed (pg 16):
-//        GPIOO0 (AA25): pld-bmc-gpioq0 [pg 27] — PLD status input
-//        GPIOO1 (AB25): pld-bmc-gpioq3 [pg 31]
-//        GPIOO2 (AB26): pld-bmc-gpioq5 [pg 31]
-//        GPIOO3 (Y26):  pld-bmc-gpioq6 [pg 31]
-//        GPIOO4 (AC26): pld-bmc-gpioq7 [pg 28]
-//        GPIOP7 (Y23):  fm-bmc-heartbeat-n (HBLED#/PWM15)
-//        GPIOR0 (V24):  pld-bmc-gpior0 [pg 27]
-//        GPIOR1 (V26):  pld-bmc-gpior1 [pg 27]
-//        GPIOR6 (W26):  fm-thermtrip-n  [pg 31] — PLD relays CPU thermal trip
-//        ADC0-11:       voltage rail sensing (VCC_12V/3V3/2V5/DDR/1V0/BAT/etc.)
-//        CHASI# (AB21): fm-intruder-bmc-r-n — chassis intrusion (dedicated input)
-//  [x] SCM PLD identified (from PLD schematics U2A/U2B/U2F):
-//        Part: Lattice LCMXO3D-9400HC-5BG256C (BGA256 16×16, 9400 LUT)
-//        I2C: QC_PLD_SDA/SCL → i2c15 @0x40 (programming/update interface) CONFIRMED
-//        SGPIOM1 (GPIOH0-H3): panel LEDs chain to PLD (confirmed, bitcount TBD)
-//        SGPIOM2 (GPIOM0-3?): second SGPIO chain, SGPIOM2_BMC_PLD_LO confirmed [U2B]
-//        SGPIO_SCM_HPM_CLK/LD/DO → HPM FPGA [pg 9] (separate chain)
-//        SGPIO_PFR_LD_N, SGPIO_PFR_DIN → PFR AST1060 [pg 10]
-//        UART5: UART5_TX/RX_BMC_PLD_DATA [pg 21,26] — extended BMC↔PLD channel
-//        FM_BMC_HEARTBEAT_N: input to PLD, drives PLD_HBLED (HSME-C290 LED)
-//        FM_THERMTRIP_N: output from PLD [pg 23] to GPIOR6 (W26) — PLD relays CPU thermal
-//        IRQ_NMI_EVENT_N: output from PLD U2B [pg 21] to BMC
-//        IRQ_BMC_SMI_N: output from PLD U2F [pg 31] → R407 4.7K pull-up
-//        RST_PLTRST_CPU_N [11], RST_PLTRST_CPU1_N [11]: platform resets via PLD
-//        PWRGD_AUX_PWRGD_PFR_CPU0/1: CPU power good via PFR→PLD→BMC
-//        FM_BMC_POST_CMPT_N [21], SYS_PWROK_BMC: platform status via PLD
-//        INT_RTC_N [34]: RTC interrupt from on-module RTC via PLD
-//        PLD_IRQ_N [21]: general PLD interrupt (R373 4.7K pull-up)
-//        RST_PLD_BMC_SRST_N [23]: PLD-initiated BMC reset
-//        FM_SLPS3_N [21]: CPU S3 sleep state relayed by PLD
-//        FM_SCM_BOARD_REV_ID0/1/2: board revision ID from PLD
-//        ABR_PFR_CPU_SEL: PFR boot selector (R409/R404 pull-up)
-//        JTAG: JTAG_PLD_TCK/TMG/TDI/TDO — BMC JTAG master to PLD JTAG slave
-//  [x] Signal name corrections from PLD schematics:
-//        rq-nm-event-l → irq-nmi-event-n (exact name from PLD U2B)
-//        irq-smi-bmc-n → irq-bmc-smi-n (PLD U2F, R407 pull-up)
+//  [x] Host ↔ BMC interface: LPC from eSPI-to-LPC bridge (ESPI_HPMCTRL)
+//        AMD CPU → eSPI → ESPI_HPMCTRL → LPC → AST2620 GPIOW
+//  [x] NCSI: MAC4 (kernel &mac3), RGMII4 pins — confirmed from pg 23 (2026-03-05)
+//  [x] GPIO ARCHITECTURE (all balls confirmed from pg 23 full PDF, 2026-03-05):
+//        GPIOO (PWM0-7):  BMC→PLD outputs — AD26/AD22/AD23/AD24/AD25/AC22/AC24/AC23
+//        GPIOP (THRU):    mixed — AB22/W24/AA23/AA24/W23/AB23/AB24/Y23
+//        GPIOQ (TACH0-7): PLD→BMC inputs — AA25/AB25/Y24/AB26/Y26/AC26/Y25/AA26
+//        GPIOR (TACH8-15):mixed — V25/U24/V24/V26/U25/T23/W26/U26
+//        CORRECTIONS vs old DTS: GPIOO/GPIOQ banks were swapped; GPIOQ was
+//        incorrectly mapped to I3C/SMBF filter pins; GPIOR ball assignments shifted.
+//  [x] ADC fully resolved from full PDF (pg 23 + pg 32, 2026-03-05):
+//        13 active channels (ADC0-12); ADC13/14 tied to GND; ADC15 unused.
+//        VCC_12V_SENSE: R_top=20k, R_bottom=2.49k, scale=9.036 (was 27k/3.48k/8.759)
+//        ADC8-12 balls corrected: AB16/AA17/AB17/AE16/AC16
+//        (prior DTS had AB17/TBD/AE16/AC16/AA16 — all shifted by one)
+//  [x] PLD LCMXO3D-9400HC confirmed; JTAG master from BMC (MTCK1/MTMS1/MTDI1/MTDO1)
+//  [x] GPIOB0 (ball J26): hpm-bmc-stby-rdy — input from HPM FPGA
 //
-// REMAINING TBD:
-//  1. Fan control: SCM PLD register map to write fan PWM setpoints via i2c15
-//  2. SGPIO bit assignments for panel LEDs (need SCM PLD firmware docs)
-//  3. SGPIOM2 pin assignments on AST2620 (GPIOM0-3 assumed — verify kernel pinctrl)
-//  4. SGPIOM2 bit count and data format (PLD firmware docs needed)
-//  5. LPC / KCS: enable &lpc_ctrl and &kcs[N] once KCS port address confirmed
-//     (standard IPMI KCS3 = 0xCA2/0xCA3; verify from BIOS or ipmitool on host)
-//  6. Which MAC for NCSI (mac0 or mac1)
-//  7. Console UART (ttyS0 vs ttyS4)
-//  8. DRAM size and SPI flash size
-//  9. GPIOO5-O7 (Y25/AA26/U24) signal names: need schematic pg 28
-// 10. Complete PLD↔BMC GPIO mapping: which GPIOO/P pin = which PSU/power signal
-//     Requires schematic pages [27], [28], [31] with GPIOO/P pin→signal table
-// 11. irq-bmc-smi-n: ball TBD (~U26, GPIOR area)
-// 12. fm-bmc-ready-n: output ball TBD (BMC ready to PLD [pg 27])
-// 13. pwrgd-p12v-aux1: input ball TBD (12V aux power good [pg 30])
-// 14. pcie-hpm-scm-pld-perst-n: input ball TBD (PCIe reset from HPM [pg 27])
-// 15. rpm-rstind-n, spi-hpm-scm-irq0-n: bank/bit TBD
-// 16. i210-rst-l: direct GPIO output ball TBD
-// 17. UART5 node: enable once UART5 pins/ttyS mapping confirmed
-// 18. SCM PLD second address 0x6F (accessible from PFR_I2C5 on carrier)
-// 19. AST1060 I2C address for BMC management (typically 0x38 or 0x70)
-// 20. TEMP1/TEMP2 actual part numbers on i2c15 (TMP75 assumed — verify BOM)
-// 21. RTC part number on i2c15 (address 0x32 — verify BOM)
-// 22. PMIC part number on i2c15 (address 0x14 — verify BOM)
-// 23. GPIOB1 (ball K23, SALT2): signal name TBD — check schematic pg [9,11,30]
-// 24. Carrier devices on i2c11 (I2C_3V3_0, gold finger A15/A16)
-// 25. ADC voltage divider ratios for hwmon calibration (schematic pg 32)
+// REMAINING TBD (updated 2026-03-05 after full PDF read):
+//  1. Fan control: SCM PLD I2C register map for PWM setpoints (PLD firmware docs)
+//  2. SGPIO bit assignments for SGPIOM1 panel LEDs (PLD firmware docs needed)
+//  3. SGPIOM2 bit count and data format (PLD firmware docs needed)
+//  4. LPC / KCS: enable &lpc_ctrl and &kcs[N] once KCS port confirmed
+//     (standard IPMI KCS3 = 0xCA2/0xCA3; verify from BIOS or ipmitool)
+//  5. GPIOQ1 (AB25): signal unlabeled in schematic — possibly unused
+//  6. Per-bit platform meaning of GPIOQ/GPIOR signals (PSU state, PWOK, etc.)
+//     from PLD firmware docs or pg 27 signal table
+//  7. rpm-rstind-n, spi-hpm-scm-irq0-n, i210-rst-l: GPIO bank/bit TBD
+//  8. UART nodes: enable UART2/4/5 once ttyS mapping confirmed
+//  9. SCM PLD second address 0x6F (via PFR_I2C5 on carrier)
+// 10. AST1060 I2C address for BMC management (typically 0x38 or 0x70)
+// 11. Carrier devices on i2c11 (I2C_3V3_0, gold finger A15/A16)
+// 12. irq-nmi-event-n, sys-pwrok-bmc, fm-bios-post-cmplt-n, pld-irq-n,
+//     rst-rsmrst-n, rst-pfr-bmc-ssprst-n: GPIO bank/bit still TBD
+//     (confirmed OUT from PLD; ball assignments need zoomed AST2620 chip view)
+// 13. PFR/BMC I3C MUX topology: exact channel routing TBD
+// 14. GPIOB1 (ball K23, SALT2): signal net TBD [pg 9,11,30]
 // ---------------------------------------------------------------------------

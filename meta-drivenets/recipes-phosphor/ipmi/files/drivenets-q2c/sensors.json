@@ -1,0 +1,29 @@
+{
+    "sensors": [
+        {
+            "id": 1,
+            "description": "Ambient_Temp_AFO",
+            "dbus_path": "/xyz/openbmc_project/sensors/temperature/Ambient_Temp_AFO"
+        },
+        {
+            "id": 2,
+            "description": "HotSpot_Temp",
+            "dbus_path": "/xyz/openbmc_project/sensors/temperature/HotSpot_Temp"
+        },
+        {
+            "id": 3,
+            "description": "HotSpot_Temp_AFI",
+            "dbus_path": "/xyz/openbmc_project/sensors/temperature/HotSpot_Temp_AFI"
+        },
+        {
+            "id": 4,
+            "description": "OP2_Temp",
+            "dbus_path": "/xyz/openbmc_project/sensors/temperature/OP2_Temp"
+        },
+        {
+            "id": 5,
+            "description": "CPU_Remote_Temp",
+            "dbus_path": "/xyz/openbmc_project/sensors/temperature/CPU_Remote_Temp"
+        }
+    ]
+}

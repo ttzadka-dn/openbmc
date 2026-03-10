@@ -9,6 +9,7 @@ project('drivenets-ipmi-oem', 'cpp',
 phosphor_logging_dep = dependency('phosphor-logging')
 ipmid_dep = dependency('libipmid')
 sdbusplus_dep = dependency('sdbusplus')
+nlohmann_json_dep = dependency('nlohmann_json')
 
 ipmid_providers_dir = get_option('prefix') / get_option('libdir') / 'ipmid-providers'
 
@@ -19,6 +20,7 @@ shared_library(
         phosphor_logging_dep,
         ipmid_dep,
         sdbusplus_dep,
+        nlohmann_json_dep,
     ],
     install: true,
     install_dir: ipmid_providers_dir,

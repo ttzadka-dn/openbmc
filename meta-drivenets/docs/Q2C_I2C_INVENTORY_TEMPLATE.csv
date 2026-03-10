@@ -1,10 +1,10 @@
 AST2620_Bus,GoldFinger_Signal,GoldFinger_Pins,Address,IC_PartNumber,Reference_Designator,Device_Type,Purpose,EntityManager_Type,Notes,Status
-15 (local),N/A (on-module),N/A,0x48,TBD (TMP75 assumed),TBD,Temperature,DC-SCM Local Temp Sensor 1 (TEMP1),TMP75,BMC_I2C15; on DC-SCM module; part TBD from BOM,CONFIRMED - part TBD
-15 (local),N/A (on-module),N/A,0x49,TBD (TMP75 assumed),TBD,Temperature,DC-SCM Local Temp Sensor 2 (TEMP2),TMP75,BMC_I2C15; on DC-SCM module; part TBD from BOM,CONFIRMED - part TBD
-15 (local),N/A (on-module),N/A,0x50,AT24C128,TBD,EEPROM,SCM FRU EEPROM (VPD / asset data),EEPROM,BMC_I2C15; on DC-SCM module; 128Kbit; pagesize=64,CONFIRMED
-15 (local),N/A (on-module),N/A,0x32,TBD,TBD,RTC,Real-Time Clock,RTC,BMC_I2C15; address 0x32 unusual - verify part from BOM,CONFIRMED - part TBD
-15 (local),N/A (on-module),N/A,0x14,TBD,TBD,PMIC,Power Management IC,PMIC,BMC_I2C15; part TBD from BOM,CONFIRMED - part TBD
-15 (local),N/A (on-module),N/A,0x40,SCM PLD (custom),TBD,PLD/CPLD,SCM Platform Logic Device - fan control / SGPIO / platform logic,PLD,BMC_I2C15; 0x40 = update/programming address; 0x6F = secondary addr via PFR (TBD),CONFIRMED
+15 (local),N/A (on-module),N/A,0x48,LM73CIMK,TBD,Temperature,DC-SCM Local Temp Sensor 1 (TEMP1),LM73,BMC_I2C15; on DC-SCM module; CONFIRMED from schematic pg 34; compatible=ti,lm73,CONFIRMED
+15 (local),N/A (on-module),N/A,0x49,LM73CIMK,TBD,Temperature,DC-SCM Local Temp Sensor 2 (TEMP2),LM73,BMC_I2C15; on DC-SCM module; CONFIRMED from schematic pg 34; compatible=ti,lm73,CONFIRMED
+15 (local),N/A (on-module),N/A,0x50,ST M24C64-RMN6TP,TBD,EEPROM,SCM FRU EEPROM (VPD / asset data),EEPROM,BMC_I2C15; 8KB; pagesize=32B; CORRECTED (was AT24C128 with pagesize=64); compatible=st,m24c64,CONFIRMED
+15 (local),N/A (on-module),N/A,0x32,Epson RX8130CE,TBD,RTC,Real-Time Clock,RTC,BMC_I2C15; CONFIRMED from schematic pg 34; compatible=epson,rx8130; CORRECTED (was TBD / rv8803),CONFIRMED
+15 (local),N/A (on-module),N/A,0x12,APW6016P1,TBD,PMIC,Power Management IC (step-down DC-DC),PMIC,BMC_I2C15; CONFIRMED from schematic pg 36; address CORRECTED (was 0x14); compatible=anpec,apw6016p1,CONFIRMED
+15 (local),N/A (on-module),N/A,0x40,SCM PLD (Lattice LCMXO3D-9400HC-5BG256C),TBD,PLD/CPLD,SCM Platform Logic Device - fan control / SGPIO / platform logic,PLD,BMC_I2C15; 0x40=update/programming address; 0x6F=secondary addr via PFR_I2C5 (TBD); BGA256 9400 LUT,CONFIRMED
 11,I2C_3V3_0,A15/A16,TBD,TBD,TBD,TBD,Carrier board devices on I2C_3V3_0,TBD,BMC_I2C11; gold finger bus; carrier-side devices TBD,TBD
 10,I2C_3V3_4,A45/A46,0x74,PCA9539,U27,GPIO_Expander,BIOS Updates GPIO Expander (16-bit),PCA9539,BMC_I2C10; BIOS SPI flash update control,CONFIRMED
 5,I2C_3V3_5,A47/A48,0x34,UCD90120A,TBD,Power_Sequencer,Power sequencer / monitor,UCD90120A,BMC_I2C5; Main carrier sensor bus,CONFIRMED
